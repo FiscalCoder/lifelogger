@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="divider">#FFE0E0E0</color>
+    <color name="error">#FFB00020</color>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="action_play_recording">Play / Stop recording</string>
+    <string name="action_retry_failed">Retry failed</string>
+    <string name="action_search">Search</string>
+    <string name="action_upload_now">Upload now</string>
+    <string name="app_name">LifeLogger</string>
+    <string name="error_backend_unavailable">Backend not yet available</string>
+    <string name="hint_search_query">Search transcripts…</string>
+    <string name="label_failed_uploads">Failed: —</string>
+    <string name="label_last_upload">Last upload: —</string>
+    <string name="label_no_recordings">No local recordings yet</string>
+    <string name="label_pending_uploads">Pending: —</string>
+    <string name="label_power_saver">Power-saver mode (slower polling)</string>
+    <string name="label_recording">Recording active</string>
+    <string name="label_uploaded">Uploaded: —</string>
+    <string name="label_wifi_checking">WiFi: Checking…</string>
+    <string name="nav_recordings">Recordings</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_speakers">Name Speakers</string>
+    <string name="nav_status">Status</string>
+    <style name="Theme.LifeLogger" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+</resources>

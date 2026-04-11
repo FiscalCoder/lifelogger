@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/statusFragment">
+
+    <fragment
+        android:id="@+id/statusFragment"
+        android:name="com.lifelogger.ui.StatusFragment"
+        android:label="@string/nav_status" />
+
+    <fragment
+        android:id="@+id/recordingsFragment"
+        android:name="com.lifelogger.ui.RecordingsFragment"
+        android:label="@string/nav_recordings" />
+
+    <fragment
+        android:id="@+id/speakerNamingFragment"
+        android:name="com.lifelogger.ui.SpeakerNamingFragment"
+        android:label="@string/nav_speakers" />
+
+    <fragment
+        android:id="@+id/queryFragment"
+        android:name="com.lifelogger.ui.QueryFragment"
+        android:label="@string/nav_search" />
+
+</navigation>

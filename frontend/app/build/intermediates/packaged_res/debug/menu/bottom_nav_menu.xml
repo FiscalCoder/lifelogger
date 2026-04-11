@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/statusFragment"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="@string/nav_status" />
+
+    <item
+        android:id="@+id/recordingsFragment"
+        android:icon="@android:drawable/ic_media_play"
+        android:title="@string/nav_recordings" />
+
+    <item
+        android:id="@+id/speakerNamingFragment"
+        android:icon="@android:drawable/ic_menu_myplaces"
+        android:title="@string/nav_speakers" />
+
+    <item
+        android:id="@+id/queryFragment"
+        android:icon="@android:drawable/ic_menu_search"
+        android:title="@string/nav_search" />
+
+</menu>

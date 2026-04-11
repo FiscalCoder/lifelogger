@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Microphone icon — foreground layer of the adaptive launcher icon.
+    Rendered on a 108×108dp canvas (the adaptive icon safe zone is 72dp centred).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Mic capsule -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,22 C47.37,22 42,27.37 42,34 L42,54 C42,60.63 47.37,66 54,66 C60.63,66 66,60.63 66,54 L66,34 C66,27.37 60.63,22 54,22 Z" />
+
+    <!-- Mic stand + base -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M72,54 C72,63.94 63.94,72 54,72 C44.06,72 36,63.94 36,54 L30,54 C30,66.84 39.72,77.46 52,79.62 L52,86 L56,86 L56,79.62 C68.28,77.46 78,66.84 78,54 Z" />
+</vector>

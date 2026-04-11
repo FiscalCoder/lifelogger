@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LifeLogger</string>
+
+    <!-- Status fragment -->
+    <string name="label_recording">Recording active</string>
+    <string name="label_wifi_checking">WiFi: Checking…</string>
+    <string name="label_pending_uploads">Pending: —</string>
+    <string name="label_failed_uploads">Failed: —</string>
+    <string name="label_uploaded">Uploaded: —</string>
+    <string name="label_last_upload">Last upload: —</string>
+    <string name="label_power_saver">Power-saver mode (slower polling)</string>
+    <string name="action_upload_now">Upload now</string>
+    <string name="action_retry_failed">Retry failed</string>
+
+    <!-- Query fragment -->
+    <string name="hint_search_query">Search transcripts…</string>
+    <string name="action_search">Search</string>
+    <string name="error_backend_unavailable">Backend not yet available</string>
+
+    <!-- Recordings fragment -->
+    <string name="label_no_recordings">No local recordings yet</string>
+    <string name="action_play_recording">Play / Stop recording</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_status">Status</string>
+    <string name="nav_recordings">Recordings</string>
+    <string name="nav_speakers">Name Speakers</string>
+    <string name="nav_search">Search</string>
+</resources>

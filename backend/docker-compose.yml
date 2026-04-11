@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: lifelogger-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./api/src/db/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./api
+    container_name: lifelogger-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      AUDIO_PENDING_DIR: /audio/pending
+      AUDIO_ARCHIVE_DIR: /audio/archive
+      AUDIO_SAMPLE_DIR: /audio/samples
+      PORT: 8000
+    volumes:
+      - audio_data:/audio
+    ports:
+      - "9000:8000"
+
+  pipeline:
+    build: ./pipeline
+    container_name: lifelogger-pipeline
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      AUDIO_PENDING_DIR: /audio/pending
+      AUDIO_ARCHIVE_DIR: /audio/archive
+      AUDIO_SAMPLE_DIR: /audio/samples
+      HF_TOKEN: ${HF_TOKEN}
+      MAX_WORKERS: 1
+      OMP_NUM_THREADS: 2
+      MKL_NUM_THREADS: 2
+      OPENBLAS_NUM_THREADS: 2
+    volumes:
+      - audio_data:/audio
+      - pipeline_models:/app/models
+    deploy:
+      resources:
+        limits:
+          cpus: '3'
+          memory: 4G
+
+volumes:
+  postgres_data:
+  audio_data:
+  pipeline_models:

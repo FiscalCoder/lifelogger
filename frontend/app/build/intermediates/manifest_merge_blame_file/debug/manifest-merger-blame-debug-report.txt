@@ -1,0 +1,271 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.lifelogger"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="30"
+9        android:targetSdkVersion="35" />
+10
+11    <!--
+12         ═══════════════════════════════════════════════════════════════════════
+13         PERMISSIONS
+14         Primary target: Android 11 (API 30) — Qin F21 Pro.
+15         All permissions are compatible with API 31–35 unless capped with
+16         android:maxSdkVersion.
+17         ═══════════════════════════════════════════════════════════════════════
+18    -->
+19
+20
+21    <!-- Microphone access for VAD sampling and audio recording -->
+22    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+22-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:12:5-71
+22-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:12:22-68
+23
+24    <!-- Required to call startForeground() -->
+25    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+25-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:15:5-77
+25-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:15:22-74
+26
+27    <!--
+28         Android 12+ (API 31+): required for foreground services that use the mic.
+29         Silently ignored on API 30.
+30    -->
+31    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+31-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:19:5-88
+31-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:19:22-85
+32
+33    <!-- PARTIAL_WAKE_LOCK: keeps CPU alive when screen is off (F4 requirement) -->
+34    <uses-permission android:name="android.permission.WAKE_LOCK" />
+34-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:22:5-68
+34-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:22:22-65
+35
+36    <!-- Allows BootReceiver to start on device reboot -->
+37    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+37-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:25:5-81
+37-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:25:22-78
+38
+39    <!-- Network access for chunk upload -->
+40    <uses-permission android:name="android.permission.INTERNET" />
+40-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:28:5-67
+40-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:28:22-64
+41    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+41-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:29:5-79
+41-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:29:22-76
+42    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+42-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:30:5-76
+42-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:30:22-73
+43
+44    <!--
+45         External storage: only needed on Android ≤ 9 (API ≤ 29).
+46         API 30+ uses app-internal storage (getFilesDir()) which needs no permission.
+47    -->
+48    <uses-permission
+48-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:34:5-36:38
+49        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+49-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:35:9-65
+50        android:maxSdkVersion="29" />
+50-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:36:9-35
+51    <uses-permission
+51-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:37:5-39:38
+52        android:name="android.permission.READ_EXTERNAL_STORAGE"
+52-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:38:9-64
+53        android:maxSdkVersion="32" />
+53-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:39:9-35
+54
+55    <permission
+55-->[androidx.core:core:1.12.0] C:\Users\Bharghav\.gradle\caches\transforms-3\01be542a8a7642ecba403b94caa2bdf6\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+56        android:name="com.lifelogger.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+56-->[androidx.core:core:1.12.0] C:\Users\Bharghav\.gradle\caches\transforms-3\01be542a8a7642ecba403b94caa2bdf6\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+57        android:protectionLevel="signature" />
+57-->[androidx.core:core:1.12.0] C:\Users\Bharghav\.gradle\caches\transforms-3\01be542a8a7642ecba403b94caa2bdf6\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+58
+59    <uses-permission android:name="com.lifelogger.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+59-->[androidx.core:core:1.12.0] C:\Users\Bharghav\.gradle\caches\transforms-3\01be542a8a7642ecba403b94caa2bdf6\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+59-->[androidx.core:core:1.12.0] C:\Users\Bharghav\.gradle\caches\transforms-3\01be542a8a7642ecba403b94caa2bdf6\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+60
+61    <application
+61-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:41:5-97:19
+62        android:allowBackup="false"
+62-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:42:9-36
+63        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+63-->[androidx.core:core:1.12.0] C:\Users\Bharghav\.gradle\caches\transforms-3\01be542a8a7642ecba403b94caa2bdf6\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+64        android:debuggable="true"
+65        android:extractNativeLibs="false"
+66        android:icon="@mipmap/ic_launcher"
+66-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:43:9-43
+67        android:label="@string/app_name"
+67-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:44:9-41
+68        android:roundIcon="@mipmap/ic_launcher_round"
+68-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:45:9-54
+69        android:supportsRtl="true"
+69-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:46:9-35
+70        android:testOnly="true"
+71        android:theme="@style/Theme.LifeLogger"
+71-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:47:9-48
+72        android:usesCleartextTraffic="true" >
+72-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:48:9-44
+73
+74        <!--
+75            usesCleartextTraffic=true: permits HTTP to the local server on the same WiFi.
+76            When the backend moves to HTTPS, remove this flag and add a
+77            network_security_config.xml that allows HTTPS only.
+78        -->
+79
+80        <activity
+80-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:55:9-64:20
+81            android:name="com.lifelogger.MainActivity"
+81-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:56:13-41
+82            android:configChanges="orientation|screenSize|uiMode"
+82-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:57:13-66
+83            android:exported="true"
+83-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:58:13-36
+84            android:launchMode="singleTask" >
+84-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:59:13-44
+85            <intent-filter>
+85-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:60:13-63:29
+86                <action android:name="android.intent.action.MAIN" />
+86-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:61:17-69
+86-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:61:25-66
+87
+88                <category android:name="android.intent.category.LAUNCHER" />
+88-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:62:17-77
+88-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:62:27-74
+89            </intent-filter>
+90        </activity>
+91
+92        <!--
+93            LifeLoggerService: the foreground service that holds the mic.
+94
+95            foregroundServiceType="microphone":
+96              Required on API 29+. On API 31+, must match the type passed to
+97              startForeground(), which ServiceCompat handles for us.
+98
+99            android:stopWithTask="false":
+100              Service continues when the user swipes the app away from recents.
+101              Critical for 24/7 recording use case.
+102        -->
+103        <service
+103-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:77:9-82:44
+104            android:name="com.lifelogger.LifeLoggerService"
+104-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:78:13-46
+105            android:enabled="true"
+105-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:79:13-35
+106            android:exported="false"
+106-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:80:13-37
+107            android:foregroundServiceType="microphone"
+107-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:81:13-55
+108            android:stopWithTask="false" />
+108-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:82:13-41
+109
+110        <!--
+111            BootReceiver: starts LifeLoggerService on device reboot.
+112            android:exported="true" required for implicit system broadcasts on API 31+.
+113        -->
+114        <receiver
+114-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:88:9-95:20
+115            android:name="com.lifelogger.BootReceiver"
+115-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:89:13-41
+116            android:enabled="true"
+116-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:90:13-35
+117            android:exported="true" >
+117-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:91:13-36
+118            <intent-filter>
+118-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:92:13-94:29
+119                <action android:name="android.intent.action.BOOT_COMPLETED" />
+119-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:93:17-79
+119-->D:\development\lifelogger\frontend\app\src\main\AndroidManifest.xml:93:25-76
+120            </intent-filter>
+121        </receiver>
+122
+123        <provider
+123-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Bharghav\.gradle\caches\transforms-3\2497a04ce439ba5192d483e53a542533\transformed\emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+124            android:name="androidx.startup.InitializationProvider"
+124-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Bharghav\.gradle\caches\transforms-3\2497a04ce439ba5192d483e53a542533\transformed\emoji2-1.2.0\AndroidManifest.xml:25:13-67
+125            android:authorities="com.lifelogger.androidx-startup"
+125-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Bharghav\.gradle\caches\transforms-3\2497a04ce439ba5192d483e53a542533\transformed\emoji2-1.2.0\AndroidManifest.xml:26:13-68
+126            android:exported="false" >
+126-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Bharghav\.gradle\caches\transforms-3\2497a04ce439ba5192d483e53a542533\transformed\emoji2-1.2.0\AndroidManifest.xml:27:13-37
+127            <meta-data
+127-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Bharghav\.gradle\caches\transforms-3\2497a04ce439ba5192d483e53a542533\transformed\emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+128                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+128-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Bharghav\.gradle\caches\transforms-3\2497a04ce439ba5192d483e53a542533\transformed\emoji2-1.2.0\AndroidManifest.xml:30:17-75
+129                android:value="androidx.startup" />
+129-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Bharghav\.gradle\caches\transforms-3\2497a04ce439ba5192d483e53a542533\transformed\emoji2-1.2.0\AndroidManifest.xml:31:17-49
+130            <meta-data
+130-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Bharghav\.gradle\caches\transforms-3\6cd941b5728d35bc713ca3d34665a608\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+131                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+131-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Bharghav\.gradle\caches\transforms-3\6cd941b5728d35bc713ca3d34665a608\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+132                android:value="androidx.startup" />
+132-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Bharghav\.gradle\caches\transforms-3\6cd941b5728d35bc713ca3d34665a608\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
+133            <meta-data
+133-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+134                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+134-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+135                android:value="androidx.startup" />
+135-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+136        </provider>
+137
+138        <uses-library
+138-->[androidx.window:window:1.0.0] C:\Users\Bharghav\.gradle\caches\transforms-3\3a89d278939b9a8444ab24b60207adcc\transformed\window-1.0.0\AndroidManifest.xml:25:9-27:40
+139            android:name="androidx.window.extensions"
+139-->[androidx.window:window:1.0.0] C:\Users\Bharghav\.gradle\caches\transforms-3\3a89d278939b9a8444ab24b60207adcc\transformed\window-1.0.0\AndroidManifest.xml:26:13-54
+140            android:required="false" />
+140-->[androidx.window:window:1.0.0] C:\Users\Bharghav\.gradle\caches\transforms-3\3a89d278939b9a8444ab24b60207adcc\transformed\window-1.0.0\AndroidManifest.xml:27:13-37
+141        <uses-library
+141-->[androidx.window:window:1.0.0] C:\Users\Bharghav\.gradle\caches\transforms-3\3a89d278939b9a8444ab24b60207adcc\transformed\window-1.0.0\AndroidManifest.xml:28:9-30:40
+142            android:name="androidx.window.sidecar"
+142-->[androidx.window:window:1.0.0] C:\Users\Bharghav\.gradle\caches\transforms-3\3a89d278939b9a8444ab24b60207adcc\transformed\window-1.0.0\AndroidManifest.xml:29:13-51
+143            android:required="false" />
+143-->[androidx.window:window:1.0.0] C:\Users\Bharghav\.gradle\caches\transforms-3\3a89d278939b9a8444ab24b60207adcc\transformed\window-1.0.0\AndroidManifest.xml:30:13-37
+144
+145        <service
+145-->[androidx.room:room-runtime:2.6.1] C:\Users\Bharghav\.gradle\caches\transforms-3\001d992114bee161356b4690d627c5c0\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
+146            android:name="androidx.room.MultiInstanceInvalidationService"
+146-->[androidx.room:room-runtime:2.6.1] C:\Users\Bharghav\.gradle\caches\transforms-3\001d992114bee161356b4690d627c5c0\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
+147            android:directBootAware="true"
+147-->[androidx.room:room-runtime:2.6.1] C:\Users\Bharghav\.gradle\caches\transforms-3\001d992114bee161356b4690d627c5c0\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
+148            android:exported="false" />
+148-->[androidx.room:room-runtime:2.6.1] C:\Users\Bharghav\.gradle\caches\transforms-3\001d992114bee161356b4690d627c5c0\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
+149
+150        <receiver
+150-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+151            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+151-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+152            android:directBootAware="false"
+152-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+153            android:enabled="true"
+153-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+154            android:exported="true"
+154-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+155            android:permission="android.permission.DUMP" >
+155-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+156            <intent-filter>
+156-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+157                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+157-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+157-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+158            </intent-filter>
+159            <intent-filter>
+159-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+160                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+160-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+160-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+161            </intent-filter>
+162            <intent-filter>
+162-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+163                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+163-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+163-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+164            </intent-filter>
+165            <intent-filter>
+165-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+166                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+166-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+166-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Bharghav\.gradle\caches\transforms-3\5f7ce29a25973535d221a2c1da52466d\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+167            </intent-filter>
+168        </receiver>
+169    </application>
+170
+171</manifest>

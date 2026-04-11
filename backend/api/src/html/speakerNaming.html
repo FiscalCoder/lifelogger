@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeLogger — Name Speakers</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 1.5rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #f8fafc;
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+    }
+
+    #queue {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 540px;
+    }
+
+    .card {
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .temp-name {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .recorded-at {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    audio {
+      width: 100%;
+      height: 36px;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: #0f1117;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 0.9rem;
+      padding: 0.5rem 0.75rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #6366f1;
+    }
+
+    input[type="text"]::placeholder {
+      color: #475569;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-save {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    .btn-skip {
+      background: #334155;
+      color: #94a3b8;
+    }
+
+    .status {
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+      min-height: 1rem;
+    }
+
+    .status.error { color: #f87171; }
+    .status.success { color: #34d399; }
+
+    #done-banner {
+      display: none;
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #34d399;
+      font-size: 1.1rem;
+    }
+
+    #loading {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Name Speakers</h1>
+  <p class="subtitle">Listen to the clip, type the person's name, then save.</p>
+
+  <div id="loading">Loading unknown speakers…</div>
+  <div id="queue"></div>
+  <div id="done-banner">All speakers named! ✓</div>
+
+  <script>
+    const queue = document.getElementById('queue');
+    const loading = document.getElementById('loading');
+    const doneBanner = document.getElementById('done-banner');
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, {
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    }
+
+    function showDoneIfEmpty() {
+      if (queue.children.length === 0) {
+        doneBanner.style.display = 'block';
+      }
+    }
+
+    function removeCard(card) {
+      card.remove();
+      showDoneIfEmpty();
+    }
+
+    function createCard(unknown) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.id = unknown.id;
+
+      const audioUrl = unknown.audioSample
+        ? `/audio/${encodeURIComponent(unknown.audioSample)}/sample`
+        : null;
+
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="temp-name">${unknown.tempName || 'unknown'}</span>
+          <span class="recorded-at">${formatDate(unknown.recordedAt)}</span>
+        </div>
+        ${audioUrl
+          ? `<audio controls preload="none" src="${audioUrl}"></audio>`
+          : `<p style="font-size:0.8rem;color:#64748b;margin-bottom:1rem;">No audio sample available</p>`
+        }
+        <div class="input-row">
+          <input type="text" placeholder="Enter person's name…" autocomplete="off" />
+          <button class="btn btn-save">Save</button>
+          <button class="btn btn-skip">Skip</button>
+        </div>
+        <div class="status"></div>
+      `;
+
+      const input = card.querySelector('input');
+      const saveBtn = card.querySelector('.btn-save');
+      const skipBtn = card.querySelector('.btn-skip');
+      const statusEl = card.querySelector('.status');
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveBtn.click();
+      });
+
+      saveBtn.addEventListener('click', async () => {
+        const name = input.value.trim();
+        if (!name) {
+          statusEl.textContent = 'Please enter a name.';
+          statusEl.className = 'status error';
+          return;
+        }
+
+        saveBtn.disabled = true;
+        skipBtn.disabled = true;
+        statusEl.textContent = 'Saving…';
+        statusEl.className = 'status';
+
+        try {
+          const res = await fetch('/speakers/name', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ unknownId: unknown.id, name }),
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || `HTTP ${res.status}`);
+          }
+
+          statusEl.textContent = `Saved as "${name}" ✓`;
+          statusEl.className = 'status success';
+          setTimeout(() => removeCard(card), 600);
+        } catch (err) {
+          statusEl.textContent = `Error: ${err.message}`;
+          statusEl.className = 'status error';
+          saveBtn.disabled = false;
+          skipBtn.disabled = false;
+        }
+      });
+
+      skipBtn.addEventListener('click', () => removeCard(card));
+
+      return card;
+    }
+
+    async function loadUnknowns() {
+      try {
+        const res = await fetch('/unknowns');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const unknowns = await res.json();
+
+        loading.style.display = 'none';
+
+        if (!Array.isArray(unknowns) || unknowns.length === 0) {
+          showDoneIfEmpty();
+          return;
+        }
+
+        for (const u of unknowns) {
+          queue.appendChild(createCard(u));
+        }
+      } catch (err) {
+        loading.textContent = `Failed to load: ${err.message}`;
+      }
+    }
+
+    loadUnknowns();
+  </script>
+</body>
+</html>
