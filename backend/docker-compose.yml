@@ -33,10 +33,10 @@ services:
       AUDIO_PENDING_DIR: /audio/pending
       AUDIO_ARCHIVE_DIR: /audio/archive
       AUDIO_SAMPLE_DIR: /audio/samples
-      MAX_WORKERS: 1
-      OMP_NUM_THREADS: 2
-      MKL_NUM_THREADS: 2
-      OPENBLAS_NUM_THREADS: 2
+      MAX_WORKERS: ${MAX_WORKERS:-2}
+      OMP_NUM_THREADS: ${OMP_NUM_THREADS:-2}
+      MKL_NUM_THREADS: ${MKL_NUM_THREADS:-2}
+      OPENBLAS_NUM_THREADS: ${OPENBLAS_NUM_THREADS:-2}
     volumes:
       - audio_data:/audio
       - pipeline_models:/app/models

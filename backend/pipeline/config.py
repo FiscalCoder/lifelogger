@@ -65,7 +65,7 @@ SPEAKER_SAMPLE_DURATION: float = float(
 )
 
 # ── Transcription ─────────────────────────────────────────────────────────────
-MAX_WORKERS: int = int(os.environ.get('MAX_WORKERS', '8'))
+MAX_WORKERS: int = int(os.environ.get('MAX_WORKERS', '2'))
 WHISPER_BEAM_SIZE: int = int(os.environ.get('WHISPER_BEAM_SIZE', '5'))
 WHISPER_TASK: str = os.environ.get('WHISPER_TASK', 'transcribe')
 WHISPER_VAD_FILTER: bool = _env_bool('WHISPER_VAD_FILTER', True)

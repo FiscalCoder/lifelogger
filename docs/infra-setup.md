@@ -375,7 +375,10 @@ chown lifelogger:lifelogger /app/lifelogger/backend/.env
 DATABASE_URL="postgres://lifelogger:<URL_ENCODED_PASSWORD>@lifelogger.c3ueqi6k0dik.ap-south-1.rds.amazonaws.com:5432/lifelogger?sslmode=require"
 HF_TOKEN=hf_xxx
 SPEAKER_MATCH_THRESHOLD=0.82
-MAX_WORKERS=8
+MAX_WORKERS=2
+OMP_NUM_THREADS=2
+MKL_NUM_THREADS=2
+OPENBLAS_NUM_THREADS=2
 ```
 
 The API service reads this file with `EnvironmentFile`. Docker Compose reads it

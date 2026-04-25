@@ -1,8 +1,12 @@
 name: Deploy Backend
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
 
 jobs:
   deploy:
@@ -11,6 +15,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: backend
+
+      - name: Create backend env file
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.LIFELOGGER_DATABASE_URL }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "LIFELOGGER_DATABASE_URL GitHub secret is required."
+            exit 1
+          fi
+
+          {
+            printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+            printf 'HF_TOKEN=%s\n' "$HF_TOKEN"
+            printf 'SPEAKER_MATCH_THRESHOLD=0.82\n'
+            printf 'MAX_WORKERS=2\n'
+            printf 'OMP_NUM_THREADS=2\n'
+            printf 'MKL_NUM_THREADS=2\n'
+            printf 'OPENBLAS_NUM_THREADS=2\n'
+          } > .env
 
       - name: Deploy backend with docker compose
         working-directory: ./backend
