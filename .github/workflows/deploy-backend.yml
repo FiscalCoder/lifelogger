@@ -1,0 +1,34 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy backend with docker compose
+        working-directory: ./backend
+        run: |
+          docker compose down
+          docker compose build
+          docker compose up -d
+
+      - name: Wait for health check
+        run: |
+          echo "Waiting for API to be ready..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:10000/health > /dev/null 2>&1; then
+              echo "API is healthy!"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Health check failed after 60 seconds"
+          docker compose -f backend/docker-compose.yml logs api
+          exit 1
