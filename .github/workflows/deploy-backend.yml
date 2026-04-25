@@ -21,11 +21,15 @@ jobs:
       - name: Create backend env file
         working-directory: ./backend
         env:
-          DATABASE_URL: ${{ secrets.LIFELOGGER_DATABASE_URL }}
+          LIFELOGGER_DATABASE_URL: ${{ secrets.LIFELOGGER_DATABASE_URL }}
+          DATABASE_URL_SECRET: ${{ secrets.DATABASE_URL }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          DATABASE_URL="${LIFELOGGER_DATABASE_URL:-$DATABASE_URL_SECRET}"
+
           if [ -z "$DATABASE_URL" ]; then
-            echo "LIFELOGGER_DATABASE_URL GitHub secret is required."
+            echo "Database URL secret is required."
+            echo "Add LIFELOGGER_DATABASE_URL, or DATABASE_URL, as a repository secret."
             exit 1
           fi
 
@@ -38,6 +42,9 @@ jobs:
             printf 'MKL_NUM_THREADS=2\n'
             printf 'OPENBLAS_NUM_THREADS=2\n'
           } > .env
+
+          chmod 600 .env
+          echo "Created backend/.env for deployment."
 
       - name: Deploy backend with docker compose
         working-directory: ./backend
