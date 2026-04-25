@@ -1,6 +1,7 @@
 # Environment
 .env
 *.env.local
+frontend/local.properties
 
 # OS
 .DS_Store

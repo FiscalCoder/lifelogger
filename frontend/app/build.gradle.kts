@@ -6,14 +6,26 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
-// Read server URL from local.properties (never committed to source control).
-// Set `server.base.url=http://<YOUR_LOCAL_IP>:8000` in frontend/local.properties.
+// Read client config from environment or local.properties.
+// Set `server.base.url=https://lifelogger.huecentral.cloud` and `api.token=...`
+// in frontend/local.properties for local Android builds.
 val localProps = Properties()
 val localPropsFile = rootProject.file("local.properties")
 if (localPropsFile.exists()) {
     localPropsFile.inputStream().use { localProps.load(it) }
 }
-val serverBaseUrl: String = localProps.getProperty("server.base.url", "http://192.168.1.100:8000")
+fun String.toBuildConfigString(): String =
+    "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+val serverBaseUrl: String =
+    System.getenv("LIFELOGGER_SERVER_BASE_URL")
+        ?: localProps.getProperty("server.base.url")
+        ?: "https://lifelogger.huecentral.cloud"
+val apiToken: String =
+    System.getenv("LIFELOGGER_API_TOKEN")
+        ?: System.getenv("API_TOKEN")
+        ?: localProps.getProperty("api.token")
+        ?: ""
 
 android {
     namespace = "com.lifelogger"
@@ -26,8 +38,8 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // Injected into BuildConfig so no IP is hardcoded in source.
-        buildConfigField("String", "SERVER_BASE_URL", "\"$serverBaseUrl\"")
+        buildConfigField("String", "SERVER_BASE_URL", serverBaseUrl.toBuildConfigString())
+        buildConfigField("String", "API_TOKEN", apiToken.toBuildConfigString())
     }
 
     buildTypes {

@@ -95,7 +95,7 @@ class SpeakerNamingFragment : Fragment() {
 
     private fun loadPage() {
         errorLayout?.visibility = View.GONE
-        webView?.loadUrl(AppConfig.SPEAKERS_UI_URL)
+        webView?.loadUrl(AppConfig.SPEAKERS_UI_URL, AppConfig.AUTH_HEADERS)
     }
 
     private fun showError(message: String) {

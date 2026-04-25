@@ -6,15 +6,16 @@ import com.lifelogger.BuildConfig
 /**
  * Central configuration for LifeLogger.
  *
- * SERVER_BASE_URL is read from local.properties at build time via BuildConfig.
- * Set `server.base.url=http://<LOCAL_IP>:8000` in frontend/local.properties.
- * The file is gitignored — each developer sets their own IP.
+ * SERVER_BASE_URL and API_TOKEN are injected into BuildConfig at build time.
  */
 object AppConfig {
 
     // ─── Network ──────────────────────────────────────────────────────────────
 
     val SERVER_BASE_URL: String get() = BuildConfig.SERVER_BASE_URL
+    val AUTHORIZATION_HEADER: String get() = "Bearer ${BuildConfig.API_TOKEN}"
+    val AUTH_HEADERS: Map<String, String>
+        get() = mapOf("Authorization" to AUTHORIZATION_HEADER)
     val UPLOAD_ENDPOINT: String get() = "$SERVER_BASE_URL/upload"
     val QUERY_ENDPOINT: String get() = "$SERVER_BASE_URL/query"
     val SPEAKERS_UI_URL: String get() = "$SERVER_BASE_URL/speakers/ui"

@@ -99,6 +99,7 @@ class QueryFragment : Fragment() {
         val body = json.toRequestBody("application/json".toMediaTypeOrNull())
         val request = Request.Builder()
             .url(AppConfig.QUERY_ENDPOINT)
+            .header("Authorization", AppConfig.AUTHORIZATION_HEADER)
             .post(body)
             .build()
 

@@ -1,0 +1,6 @@
+# Copy this file to frontend/local.properties and fill in local values.
+#
+# Android Studio usually manages sdk.dir for you.
+sdk.dir=/path/to/android/sdk
+server.base.url=https://lifelogger.huecentral.cloud
+api.token=<same value as the backend API_TOKEN>

@@ -152,6 +152,13 @@
     const queue = document.getElementById('queue');
     const loading = document.getElementById('loading');
     const doneBanner = document.getElementById('done-banner');
+    const apiToken = __LIFELOGGER_API_TOKEN__;
+
+    function authFetch(url, options = {}) {
+      const headers = new Headers(options.headers || {});
+      if (apiToken) headers.set('Authorization', `Bearer ${apiToken}`);
+      return fetch(url, { ...options, headers });
+    }
 
     function formatDate(iso) {
       if (!iso) return '';
@@ -173,6 +180,18 @@
       showDoneIfEmpty();
     }
 
+    async function loadAudioSample(audio, audioUrl, statusEl) {
+      try {
+        const res = await authFetch(audioUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        audio.src = URL.createObjectURL(blob);
+      } catch (err) {
+        statusEl.textContent = `Audio sample unavailable: ${err.message}`;
+        statusEl.className = 'status error';
+      }
+    }
+
     function createCard(unknown) {
       const card = document.createElement('div');
       card.className = 'card';
@@ -188,7 +207,7 @@
           <span class="recorded-at">${formatDate(unknown.recordedAt)}</span>
         </div>
         ${audioUrl
-          ? `<audio controls preload="none" src="${audioUrl}"></audio>`
+          ? `<audio controls preload="none" data-src="${audioUrl}"></audio>`
           : `<p style="font-size:0.8rem;color:#64748b;margin-bottom:1rem;">No audio sample available</p>`
         }
         <div class="input-row">
@@ -203,6 +222,11 @@
       const saveBtn = card.querySelector('.btn-save');
       const skipBtn = card.querySelector('.btn-skip');
       const statusEl = card.querySelector('.status');
+      const audioEl = card.querySelector('audio');
+
+      if (audioEl && audioUrl) {
+        loadAudioSample(audioEl, audioUrl, statusEl);
+      }
 
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') saveBtn.click();
@@ -222,7 +246,7 @@
         statusEl.className = 'status';
 
         try {
-          const res = await fetch('/speakers/name', {
+          const res = await authFetch('/speakers/name', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ unknownId: unknown.id, name }),
@@ -251,7 +275,7 @@
 
     async function loadUnknowns() {
       try {
-        const res = await fetch('/unknowns');
+        const res = await authFetch('/unknowns');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const unknowns = await res.json();
 

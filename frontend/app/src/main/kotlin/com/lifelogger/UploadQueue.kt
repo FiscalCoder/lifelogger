@@ -131,6 +131,7 @@ class UploadQueue(private val context: Context) {
 
             val request = Request.Builder()
                 .url(AppConfig.UPLOAD_ENDPOINT)
+                .header("Authorization", AppConfig.AUTHORIZATION_HEADER)
                 .post(body)
                 .build()
 
