@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Enable uuid generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Known, named speakers
 CREATE TABLE IF NOT EXISTS speaker_profiles (

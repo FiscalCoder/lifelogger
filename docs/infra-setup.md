@@ -36,98 +36,66 @@ update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
 ---
 
-## 2. PostgreSQL 16 Installation
+## 2. Cloud PostgreSQL Database
+
+LifeLogger uses the AWS RDS PostgreSQL database configured in `backend/.env`.
+Do not install or run a separate PostgreSQL server on the VPS for the normal
+cloud deployment path.
+
+Install only the PostgreSQL client so the VPS can run checks and one-off SQL:
 
 ```bash
-# Add PostgreSQL apt repo
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
-    gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
-
-echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] \
-    https://apt.postgresql.org/pub/repos/apt \
-    $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
-
 apt update
-apt install -y postgresql-16 postgresql-client-16 postgresql-server-dev-16
-
-# Enable and start
-systemctl enable postgresql
-systemctl start postgresql
-
-# Verify
-psql --version   # should output: psql (PostgreSQL) 16.x
+apt install -y postgresql-client
 ```
+
+The application connection string is:
+
+```env
+DATABASE_URL="postgres://lifelogger:<URL_ENCODED_PASSWORD>@lifelogger.c3ueqi6k0dik.ap-south-1.rds.amazonaws.com:5432/lifelogger?sslmode=require"
+```
+
+The password must be URL-encoded inside `DATABASE_URL`.
 
 ---
 
-## 3. pgvector Extension
+## 3. Database Initialization
+
+The RDS database is initialized by repo migrations, not by Docker volume startup
+scripts and not by local PostgreSQL setup.
 
 ```bash
-# Install pgvector from source (requires postgresql-server-dev-16)
-cd /tmp
-git clone --branch v0.7.0 https://github.com/pgvector/pgvector.git
-cd pgvector
-make
-make install
-
-# Enable in PostgreSQL
-sudo -u postgres psql -c "CREATE EXTENSION IF NOT EXISTS vector;"
+cd /app/lifelogger/backend/api
+npm ci
+npm run db:init
 ```
 
-### Verify pgvector
+This applies `src/db/migrations/0001_init.sql`, including:
 
-```bash
-sudo -u postgres psql -c "\dx"
-# Should list: vector | 0.7.0 | public | vector data type and ivfflat and hnsw index access methods
-```
+- `CREATE EXTENSION IF NOT EXISTS vector`
+- `CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`
+- `CREATE EXTENSION IF NOT EXISTS pgcrypto`
+- application tables
+- vector and lookup indexes
+- migration tracking in `schema_migrations`
+
+See `docs/db-workflow.md` for schema changes and versioned data changes.
 
 ---
 
-## 4. Database Setup
+## 4. Database Verification
 
 ```bash
-# Switch to postgres user
-sudo -u postgres psql
+cd /app/lifelogger/backend
+set -a
+source .env
+set +a
 
--- Inside psql:
-CREATE USER lifelogger WITH PASSWORD 'changeme_strong_password';
-CREATE DATABASE lifelogger OWNER lifelogger;
-GRANT ALL PRIVILEGES ON DATABASE lifelogger TO lifelogger;
-\c lifelogger
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-\q
-```
-
-### PostgreSQL Configuration Tuning
-
-Edit `/etc/postgresql/16/main/postgresql.conf`:
-
-```ini
-# Memory (tune for 32GB VPS; leave headroom for ML models)
-shared_buffers = 4GB
-effective_cache_size = 12GB
-maintenance_work_mem = 1GB
-work_mem = 64MB
-
-# WAL
-wal_buffers = 64MB
-checkpoint_completion_target = 0.9
-
-# Connections
-max_connections = 50
-
-# Logging
-log_min_duration_statement = 1000   # log queries > 1s
-log_line_prefix = '%t [%p] [%d] '
-
-# pgvector
-# No special config needed; ivfflat uses work_mem for index build
-```
-
-Restart PostgreSQL after changes:
-```bash
-systemctl restart postgresql
+psql "$DATABASE_URL" -c "
+SELECT current_database();
+SELECT extname, extversion FROM pg_extension WHERE extname IN ('vector', 'uuid-ossp', 'pgcrypto');
+SELECT id, applied_at FROM schema_migrations ORDER BY id;
+"
 ```
 
 ---
@@ -330,7 +298,7 @@ server {
 
     location /audio/ {
         alias /audio/;
-        internal;   # only accessible via X-Accel-Redirect from FastAPI
+        internal;   # only accessible via X-Accel-Redirect from the API
     }
 }
 ```
@@ -342,21 +310,24 @@ rm /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 ```
 
-### Systemd Service for FastAPI
+### Systemd Service for API
 
 ```ini
 # /etc/systemd/system/lifelogger-api.service
 [Unit]
-Description=LifeLogger FastAPI
-After=network.target postgresql.service
+Description=LifeLogger API
+After=network.target
 
 [Service]
 User=lifelogger
 Group=lifelogger
-WorkingDirectory=/app/api
-Environment="DATABASE_URL=postgresql+asyncpg://lifelogger:changeme_strong_password@localhost/lifelogger"
-Environment="AUDIO_ROOT=/audio"
-ExecStart=/app/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2
+WorkingDirectory=/app/lifelogger/backend/api
+EnvironmentFile=/app/lifelogger/backend/.env
+Environment="AUDIO_PENDING_DIR=/audio/pending"
+Environment="AUDIO_ARCHIVE_DIR=/audio/archive"
+Environment="AUDIO_SAMPLE_DIR=/audio/samples"
+Environment="PORT=8000"
+ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/log/lifelogger/api.log
@@ -391,23 +362,24 @@ Do NOT expose port 8000 directly. Only Nginx (80/443) should be public-facing.
 
 ## 11. Environment Variables
 
-Store secrets in `/app/.env` (readable only by lifelogger):
+Store secrets in `backend/.env` (readable only by lifelogger on the VPS):
 
 ```bash
-touch /app/.env
-chmod 600 /app/.env
-chown lifelogger:lifelogger /app/.env
+touch /app/lifelogger/backend/.env
+chmod 600 /app/lifelogger/backend/.env
+chown lifelogger:lifelogger /app/lifelogger/backend/.env
 ```
 
 ```env
-# /app/.env
-DATABASE_URL=postgresql+asyncpg://lifelogger:changeme_strong_password@localhost/lifelogger
-AUDIO_ROOT=/audio
+# /app/lifelogger/backend/.env
+DATABASE_URL="postgres://lifelogger:<URL_ENCODED_PASSWORD>@lifelogger.c3ueqi6k0dik.ap-south-1.rds.amazonaws.com:5432/lifelogger?sslmode=require"
 HF_TOKEN=hf_xxx
-LOG_LEVEL=INFO
+SPEAKER_MATCH_THRESHOLD=0.82
+MAX_WORKERS=8
 ```
 
-Load in Python with `python-dotenv` or read directly in systemd unit `EnvironmentFile=/app/.env`.
+The API service reads this file with `EnvironmentFile`. Docker Compose reads it
+with `env_file`.
 
 ---
 
@@ -416,8 +388,12 @@ Load in Python with `python-dotenv` or read directly in systemd unit `Environmen
 Run these after initial setup to confirm everything is working:
 
 ```bash
-# PostgreSQL + pgvector
-sudo -u postgres psql lifelogger -c "SELECT version(); SELECT * FROM pg_extension WHERE extname = 'vector';"
+# RDS PostgreSQL + pgvector
+cd /app/lifelogger/backend
+set -a
+source .env
+set +a
+psql "$DATABASE_URL" -c "SELECT version(); SELECT * FROM pg_extension WHERE extname = 'vector';"
 
 # Python + key packages
 /app/venv/bin/python -c "
