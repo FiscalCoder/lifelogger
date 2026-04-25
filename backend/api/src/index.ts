@@ -3,6 +3,7 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { requestLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
+import { bearerAuth } from './middleware/auth';
 import { uploadRouter } from './routes/upload';
 import { speakersRouter, unknownsHandler } from './routes/speakers';
 import { audioRouter } from './routes/audio';
@@ -10,6 +11,7 @@ import { queryRouter } from './routes/query';
 
 const REQUIRED_ENV = [
   'DATABASE_URL',
+  'API_TOKEN',
   'AUDIO_PENDING_DIR',
   'AUDIO_ARCHIVE_DIR',
   'AUDIO_SAMPLE_DIR',
@@ -25,13 +27,15 @@ const app = new Hono();
 
 app.use('*', requestLogger());
 
+app.get('/health', (c) => c.json({ status: 'ok' }));
+
+app.use('*', bearerAuth);
+
 app.route('/upload', uploadRouter);
 app.route('/speakers', speakersRouter);
 app.route('/audio', audioRouter);
 app.route('/query', queryRouter);
 app.get('/unknowns', unknownsHandler);
-
-app.get('/health', (c) => c.json({ status: 'ok' }));
 
 app.onError(errorHandler);
 

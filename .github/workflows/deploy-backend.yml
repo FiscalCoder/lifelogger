@@ -23,18 +23,27 @@ jobs:
         env:
           LIFELOGGER_DATABASE_URL: ${{ secrets.LIFELOGGER_DATABASE_URL }}
           DATABASE_URL_SECRET: ${{ secrets.DATABASE_URL }}
+          LIFELOGGER_API_TOKEN: ${{ secrets.LIFELOGGER_API_TOKEN }}
+          API_TOKEN_SECRET: ${{ secrets.API_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           DATABASE_URL="${LIFELOGGER_DATABASE_URL:-$DATABASE_URL_SECRET}"
+          API_TOKEN="${LIFELOGGER_API_TOKEN:-$API_TOKEN_SECRET}"
 
           if [ -z "$DATABASE_URL" ]; then
             echo "Database URL secret is required."
             echo "Add LIFELOGGER_DATABASE_URL, or DATABASE_URL, as a repository secret."
             exit 1
           fi
+          if [ -z "$API_TOKEN" ]; then
+            echo "API token secret is required."
+            echo "Add LIFELOGGER_API_TOKEN, or API_TOKEN, as a repository secret."
+            exit 1
+          fi
 
           {
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+            printf 'API_TOKEN=%s\n' "$API_TOKEN"
             printf 'HF_TOKEN=%s\n' "$HF_TOKEN"
             printf 'SPEAKER_MATCH_THRESHOLD=0.82\n'
             printf 'MAX_WORKERS=2\n'

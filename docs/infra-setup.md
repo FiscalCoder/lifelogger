@@ -373,6 +373,7 @@ chown lifelogger:lifelogger /app/lifelogger/backend/.env
 ```env
 # /app/lifelogger/backend/.env
 DATABASE_URL="postgres://lifelogger:<URL_ENCODED_PASSWORD>@lifelogger.c3ueqi6k0dik.ap-south-1.rds.amazonaws.com:5432/lifelogger?sslmode=require"
+API_TOKEN=replace_with_a_strong_random_token
 HF_TOKEN=hf_xxx
 SPEAKER_MATCH_THRESHOLD=0.82
 MAX_WORKERS=2
@@ -383,6 +384,13 @@ OPENBLAS_NUM_THREADS=2
 
 The API service reads this file with `EnvironmentFile`. Docker Compose reads it
 with `env_file`.
+
+All API routes except `/health` require bearer-token auth:
+
+```bash
+curl -H "Authorization: Bearer $API_TOKEN" \
+  https://lifelogger.huecentral.cloud/speakers
+```
 
 ---
 
