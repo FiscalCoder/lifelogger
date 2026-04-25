@@ -23,6 +23,16 @@ APP_HOME=$( cd "${0%/*}" && pwd -P ) || exit
 APP_NAME="Gradle"
 APP_BASE_NAME=${0##*/}
 
+# Set platform flags used by the Gradle wrapper script.
+cygwin=false
+darwin=false
+nonstop=false
+case "$( uname )" in                #(
+  CYGWIN* | MINGW* ) cygwin=true ;; #(
+  Darwin* )         darwin=true  ;; #(
+  NONSTOP* )        nonstop=true ;;
+esac
+
 # Resolve links: $0 may be a link
 PRG="$0"
 while [ -h "$PRG" ] ; do

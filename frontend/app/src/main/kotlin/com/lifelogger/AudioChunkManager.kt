@@ -7,7 +7,7 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
-import android.media.MediaRecorder
+import android.media.audiofx.NoiseSuppressor
 import com.lifelogger.config.AppConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +55,7 @@ class AudioChunkManager(
         private const val ENCODING = AudioFormat.ENCODING_PCM_16BIT
         private const val AUDIO_BITRATE = 64_000     // 64 kbps AAC
         private const val MIN_CHUNK_DURATION_S = 0.5 // discard very short false-positive chunks
+        private const val BYTES_PER_SAMPLE = 2
     }
 
     // ─── Silence detection thresholds (adjustable via setBatteryMode) ─────────
@@ -100,16 +101,8 @@ class AudioChunkManager(
             return
         }
 
-        val audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            SAMPLE_RATE,
-            CHANNEL_CONFIG,
-            ENCODING,
-            minBuf
-        )
-
-        if (audioRecord.state != AudioRecord.STATE_INITIALIZED) {
-            audioRecord.release()
+        val audioRecord = AudioInput.createRecord(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING, minBuf)
+        if (audioRecord == null) {
             recording = false
             onChunkFinalized(false, "Mic failed to initialise")
             return
@@ -119,8 +112,10 @@ class AudioChunkManager(
         val tmpFile = File(tmpDir, "chunk_${System.currentTimeMillis()}.pcm")
         val chunkStartMs = System.currentTimeMillis()
         var silenceStartMs = 0L
+        var noiseSuppressor: NoiseSuppressor? = null
 
         try {
+            noiseSuppressor = createNoiseSuppressor(audioRecord)
             audioRecord.startRecording()
             val buf = ShortArray(minBuf / 2)
 
@@ -141,6 +136,9 @@ class AudioChunkManager(
                     // Silence detection
                     val rms = computeRms(buf, read)
                     val now = System.currentTimeMillis()
+                    if (now - chunkStartMs >= AppConfig.MAX_CHUNK_DURATION_MS) {
+                        recording = false
+                    }
                     if (rms < energyThreshold) {
                         if (silenceStartMs == 0L) silenceStartMs = now
                         else if (now - silenceStartMs >= silenceThresholdMs) {
@@ -152,6 +150,7 @@ class AudioChunkManager(
                 }
             }
         } finally {
+            noiseSuppressor?.release()
             runCatching { audioRecord.stop() }
             audioRecord.release()
         }
@@ -207,6 +206,7 @@ class AudioChunkManager(
 
         val info = MediaCodec.BufferInfo()
         var inputDone = false
+        var presentationTimeUs = 0L
 
         pcmFile.inputStream().use { pcmStream ->
             val inputBuf = ByteArray(4_096)
@@ -223,7 +223,9 @@ class AudioChunkManager(
                             inputDone = true
                         } else {
                             bytesBuf.put(inputBuf, 0, read)
-                            codec.queueInputBuffer(inIdx, 0, read, System.nanoTime() / 1_000, 0)
+                            codec.queueInputBuffer(inIdx, 0, read, presentationTimeUs, 0)
+                            val sampleCount = read / BYTES_PER_SAMPLE
+                            presentationTimeUs += sampleCount.toLong() * 1_000_000L / SAMPLE_RATE
                         }
                     }
                 }
@@ -266,5 +268,16 @@ class AudioChunkManager(
             sum += s * s
         }
         return sqrt(sum / count)
+    }
+
+    private fun createNoiseSuppressor(audioRecord: AudioRecord): NoiseSuppressor? {
+        if (!AppConfig.ENABLE_NOISE_SUPPRESSOR || !NoiseSuppressor.isAvailable()) {
+            return null
+        }
+        return runCatching {
+            NoiseSuppressor.create(audioRecord.audioSessionId)?.apply {
+                enabled = true
+            }
+        }.getOrNull()
     }
 }

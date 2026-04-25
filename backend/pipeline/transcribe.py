@@ -23,8 +23,13 @@ from config import (
     MAX_WORKERS,
     NO_SPEECH_PROB_THRESHOLD,
     WHISPER_BEAM_SIZE,
+    WHISPER_CONDITION_ON_PREVIOUS_TEXT,
+    WHISPER_INITIAL_PROMPT,
+    WHISPER_LANGUAGE,
     WHISPER_MODEL,
     WHISPER_MODEL_DIR,
+    WHISPER_TASK,
+    WHISPER_VAD_FILTER,
 )
 
 
@@ -54,7 +59,7 @@ def transcribe_segment(
     Transcribe a single time-bounded segment of *audio_path*.
 
     Extracts the segment to a temp WAV, runs Whisper, returns:
-        {'text': str, 'language': str, 'confidence': float}
+        {'text': str, 'language': str, 'confidence': float, 'language_probability': float}
     """
     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
         tmp_path = tmp.name
@@ -76,9 +81,12 @@ def transcribe_segment(
         model = _get_model()
         segments_iter, info = model.transcribe(
             tmp_path,
-            task='translate',
+            task=WHISPER_TASK,
             beam_size=WHISPER_BEAM_SIZE,
-            vad_filter=False,
+            vad_filter=WHISPER_VAD_FILTER,
+            language=WHISPER_LANGUAGE or None,
+            initial_prompt=WHISPER_INITIAL_PROMPT or None,
+            condition_on_previous_text=WHISPER_CONDITION_ON_PREVIOUS_TEXT,
         )
         text_parts = []
         avg_logprob_sum = 0.0
@@ -94,11 +102,19 @@ def transcribe_segment(
         text = ' '.join(text_parts).strip()
         confidence = float(avg_logprob_sum / count) if count else 0.0
         language = info.language or 'unknown'
+        language_probability = float(
+            getattr(info, 'language_probability', 0.0) or 0.0
+        )
 
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
-    return {'text': text, 'language': language, 'confidence': confidence}
+    return {
+        'text': text,
+        'language': language,
+        'confidence': confidence,
+        'language_probability': language_probability,
+    }
 
 
 def _transcribe_file_worker(args: tuple) -> tuple[str, list[dict]]:
@@ -131,6 +147,7 @@ def _transcribe_file_worker(args: tuple) -> tuple[str, list[dict]]:
                 'text': result['text'],
                 'language': result['language'],
                 'confidence': result['confidence'],
+                'language_probability': result['language_probability'],
             })
 
     return aac_path.name, transcribed

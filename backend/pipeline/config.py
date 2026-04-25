@@ -4,6 +4,15 @@ Every value can be overridden via environment variables.
 """
 import os
 
+
+def _env_bool(name: str, default: bool) -> bool:
+    """Parse a boolean environment variable with predictable defaults."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
 # ── Audio directories ─────────────────────────────────────────────────────────
 AUDIO_PENDING_DIR: str = os.environ.get('AUDIO_PENDING_DIR', '/audio/pending')
 AUDIO_ARCHIVE_DIR: str = os.environ.get('AUDIO_ARCHIVE_DIR', '/audio/archive')
@@ -58,6 +67,17 @@ SPEAKER_SAMPLE_DURATION: float = float(
 # ── Transcription ─────────────────────────────────────────────────────────────
 MAX_WORKERS: int = int(os.environ.get('MAX_WORKERS', '8'))
 WHISPER_BEAM_SIZE: int = int(os.environ.get('WHISPER_BEAM_SIZE', '5'))
+WHISPER_TASK: str = os.environ.get('WHISPER_TASK', 'transcribe')
+WHISPER_VAD_FILTER: bool = _env_bool('WHISPER_VAD_FILTER', True)
+WHISPER_LANGUAGE: str = os.environ.get('WHISPER_LANGUAGE', '')
+WHISPER_INITIAL_PROMPT: str = os.environ.get(
+    'WHISPER_INITIAL_PROMPT',
+    'Transcribe exactly. Preserve Tamil, English, and code-switching. Do not translate.',
+)
+WHISPER_CONDITION_ON_PREVIOUS_TEXT: bool = _env_bool(
+    'WHISPER_CONDITION_ON_PREVIOUS_TEXT',
+    False,
+)
 
 # Filter segments where no-speech probability exceeds this threshold
 NO_SPEECH_PROB_THRESHOLD: float = float(

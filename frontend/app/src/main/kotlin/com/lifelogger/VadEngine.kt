@@ -2,7 +2,6 @@ package com.lifelogger
 
 import android.media.AudioFormat
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import android.os.Handler
 import android.os.HandlerThread
 import com.lifelogger.config.AppConfig
@@ -146,18 +145,8 @@ class VadEngine(private val listener: VadListener) {
         val bufferSize = maxOf(minBuf, FRAME_SAMPLES * 2)
         val buffer = ShortArray(FRAME_SAMPLES)
 
-        val record = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            SAMPLE_RATE,
-            CHANNEL_CONFIG,
-            AUDIO_FORMAT,
-            bufferSize
-        )
-
-        if (record.state != AudioRecord.STATE_INITIALIZED) {
-            record.release()
-            return Pair(0.0, 0)
-        }
+        val record = AudioInput.createRecord(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, bufferSize)
+            ?: return Pair(0.0, 0)
 
         var started = false
         return try {
