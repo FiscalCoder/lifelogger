@@ -12,5 +12,5 @@ data class UploadQueueEntity(
     val recordedAt: String,          // ISO-8601 string
     val durationSeconds: Float,
     val attempts: Int = 0,
-    val status: String = "pending"   // pending | done | failed
+    val status: String = "pending"   // pending | uploaded | failed
 )

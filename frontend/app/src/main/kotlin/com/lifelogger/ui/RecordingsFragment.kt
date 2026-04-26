@@ -25,9 +25,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * Shows all locally stored recordings (pending + failed — not yet uploaded).
- * Each row displays the timestamp, duration, status, and a play/stop button.
- * Only one clip plays at a time; tapping the same row again stops it.
+ * Shows recent recording queue history. Pending and failed rows remain playable
+ * while their local file exists; uploaded rows stay visible as history after the
+ * local file is deleted.
  */
 class RecordingsFragment : Fragment() {
 
@@ -74,7 +74,7 @@ class RecordingsFragment : Fragment() {
     private fun loadRecordings() {
         val db = AppDatabase.getInstance(requireContext())
         scope.launch {
-            val items = db.uploadQueueDao().getLocal()
+            val items = db.uploadQueueDao().getRecent()
             withContext(Dispatchers.Main) {
                 if (!isAdded) return@withContext
                 if (items.isEmpty()) {
@@ -164,8 +164,9 @@ class RecordingsFragment : Fragment() {
 
                 val fileExists = File(item.filePath).exists()
                 tvStatus.text = when {
-                    !fileExists -> "file missing"
+                    item.status == "uploaded" -> "uploaded"
                     item.status == "failed" -> "failed"
+                    !fileExists -> "file missing"
                     else -> "pending"
                 }
 

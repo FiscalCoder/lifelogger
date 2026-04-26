@@ -32,6 +32,6 @@ interface UploadQueueDao {
     @Query("SELECT recordedAt FROM upload_queue WHERE status = 'uploaded' ORDER BY recordedAt DESC LIMIT 1")
     suspend fun getLastUploadTime(): String?
 
-    @Query("SELECT * FROM upload_queue WHERE status != 'uploaded' ORDER BY recordedAt DESC")
-    suspend fun getLocal(): List<UploadQueueEntity>
+    @Query("SELECT * FROM upload_queue ORDER BY recordedAt DESC LIMIT 100")
+    suspend fun getRecent(): List<UploadQueueEntity>
 }

@@ -24,7 +24,7 @@ import kotlin.math.sqrt
  *      transient impacts (a single bang is gone before the second frame).
  *
  * Architecture:
- *   IDLE:      Open AudioRecord → sample 10ms → release → check RMS + ZCR.
+ *   IDLE:      Open AudioRecord → sample a short window → release → check RMS + ZCR.
  *   DETECTED:  Stop polling, call [VadListener.onSpeechStart].
  *              AudioChunkManager then exclusively holds the mic for recording.
  *   RESUME:    AudioChunkManager calls [resume] when its chunk is finalised.
@@ -43,6 +43,8 @@ class VadEngine(private val listener: VadListener) {
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
         private const val FRAME_SAMPLES = 160   // 10ms @ 16kHz
+        private const val WINDOW_FRAMES = 10
+        private const val WINDOW_SAMPLES = FRAME_SAMPLES * WINDOW_FRAMES
 
         // ZCR bounds for the speech band in a 160-sample frame.
         // Widened upper bound to 80 so that speech mixed with background noise
@@ -50,8 +52,8 @@ class VadEngine(private val listener: VadListener) {
         private const val ZCR_MIN = 2
         private const val ZCR_MAX = 80
 
-        // Number of consecutive speech-like frames before triggering.
-        // At 100 ms poll interval this is 100 ms of continuous speech-like sound.
+        // Number of speech-like poll windows before triggering.
+        // Keep this at 1 to avoid clipping the start of speech.
         private const val SPEECH_FRAMES_REQUIRED = 1
     }
 
@@ -73,8 +75,7 @@ class VadEngine(private val listener: VadListener) {
     private val pollRunnable = object : Runnable {
         override fun run() {
             if (!running) return
-            val (rms, zcr) = sampleFrame()
-            val isSpeechLike = rms >= energyThreshold && zcr in ZCR_MIN..ZCR_MAX
+            val isSpeechLike = sampleSpeechLike()
             if (isSpeechLike) {
                 speechFrameCount++
                 if (speechFrameCount >= SPEECH_FRAMES_REQUIRED) {
@@ -133,50 +134,63 @@ class VadEngine(private val listener: VadListener) {
     // ─── Mic sampling ─────────────────────────────────────────────────────────
 
     /**
-     * Opens AudioRecord, reads one 10ms frame, computes RMS and ZCR, releases.
+     * Opens AudioRecord, reads a short window, checks each 10ms frame, releases.
      *
-     * Returns (0.0, 0) on any failure so the caller sees a below-threshold,
-     * out-of-ZCR-range sample and simply reschedules the next poll.
+     * Returns false on any failure so the caller simply reschedules the next poll.
      */
-    private fun sampleFrame(): Pair<Double, Int> {
+    private fun sampleSpeechLike(): Boolean {
         val minBuf = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
-        if (minBuf == AudioRecord.ERROR_BAD_VALUE || minBuf == AudioRecord.ERROR) return Pair(0.0, 0)
+        if (minBuf == AudioRecord.ERROR_BAD_VALUE || minBuf == AudioRecord.ERROR) return false
 
-        val bufferSize = maxOf(minBuf, FRAME_SAMPLES * 2)
-        val buffer = ShortArray(FRAME_SAMPLES)
+        val bufferSize = maxOf(minBuf, WINDOW_SAMPLES * 2)
+        val buffer = ShortArray(WINDOW_SAMPLES)
 
         val record = AudioInput.createRecord(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, bufferSize)
-            ?: return Pair(0.0, 0)
+            ?: return false
 
         var started = false
         return try {
             record.startRecording()
             started = true
-            val read = record.read(buffer, 0, FRAME_SAMPLES)
-            if (read <= 0) Pair(0.0, 0)
-            else Pair(computeRms(buffer, read), computeZcr(buffer, read))
+            val read = record.read(buffer, 0, WINDOW_SAMPLES)
+            read > 0 && hasSpeechLikeFrame(buffer, read)
         } catch (_: Exception) {
-            Pair(0.0, 0)
+            false
         } finally {
             if (started) runCatching { record.stop() }
             record.release()
         }
     }
 
-    private fun computeRms(samples: ShortArray, count: Int): Double {
+    private fun hasSpeechLikeFrame(samples: ShortArray, count: Int): Boolean {
+        var offset = 0
+        while (offset + FRAME_SAMPLES <= count) {
+            val rms = computeRms(samples, offset, FRAME_SAMPLES)
+            val zcr = computeZcr(samples, offset, FRAME_SAMPLES)
+            if (rms >= energyThreshold && zcr in ZCR_MIN..ZCR_MAX) {
+                return true
+            }
+            offset += FRAME_SAMPLES
+        }
+        return false
+    }
+
+    private fun computeRms(samples: ShortArray, offset: Int, count: Int): Double {
         var sum = 0.0
         for (i in 0 until count) {
-            val s = samples[i].toDouble()
+            val s = samples[offset + i].toDouble()
             sum += s * s
         }
         return sqrt(sum / count)
     }
 
     /** Counts zero crossings — a proxy for dominant frequency content. */
-    private fun computeZcr(samples: ShortArray, count: Int): Int {
+    private fun computeZcr(samples: ShortArray, offset: Int, count: Int): Int {
         var crossings = 0
         for (i in 1 until count) {
-            if ((samples[i - 1] >= 0) != (samples[i] >= 0)) crossings++
+            val previous = samples[offset + i - 1]
+            val current = samples[offset + i]
+            if ((previous >= 0) != (current >= 0)) crossings++
         }
         return crossings
     }

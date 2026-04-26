@@ -34,9 +34,10 @@ object AppConfig {
      *   Ambient noise: 150-400
      *   Normal speech: 600-5000
      *
-     * Default 500: detects normal speech while ignoring typical HVAC/ambient noise.
+     * Default 300: detects close speech on the low-gain F21 mic while ZCR still
+     * filters most steady non-speech noise.
      */
-    const val VAD_ENERGY_THRESHOLD = 500.0
+    const val VAD_ENERGY_THRESHOLD = 300.0
 
     /**
      * Audio source priority for F21 Pro testing.

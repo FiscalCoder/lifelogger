@@ -32,14 +32,14 @@ import kotlinx.coroutines.withContext
  * Status dashboard: recording toggle, WiFi status, pending/failed queue counts,
  * last upload timestamp, manual drain button, and power-saver mode switch.
  *
- * Refreshes every 5 seconds via [Handler.postDelayed]. Binds to [LifeLoggerService]
+ * Refreshes every second via [Handler.postDelayed]. Binds to [LifeLoggerService]
  * to relay battery mode changes and trigger immediate drains.
  */
 class StatusFragment : Fragment() {
 
     private var service: LifeLoggerService? = null
     private var uploadQueue: UploadQueue? = null
-    private val refreshIntervalMs = 5_000L
+    private val refreshIntervalMs = 1_000L
 
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -70,6 +70,7 @@ class StatusFragment : Fragment() {
             val lb = binder as? LifeLoggerService.LocalBinder ?: return
             service = lb.service
             uploadQueue = UploadQueue(requireContext())
+            refresh()
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
