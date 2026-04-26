@@ -33,6 +33,7 @@ services:
       AUDIO_PENDING_DIR: /audio/pending
       AUDIO_ARCHIVE_DIR: /audio/archive
       AUDIO_SAMPLE_DIR: /audio/samples
+      DIARIZATION_MODE: ${DIARIZATION_MODE:-single}
       MAX_WORKERS: ${MAX_WORKERS:-2}
       OMP_NUM_THREADS: ${OMP_NUM_THREADS:-2}
       MKL_NUM_THREADS: ${MKL_NUM_THREADS:-2}

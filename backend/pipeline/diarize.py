@@ -14,6 +14,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
+import wave
 from pathlib import Path
 from typing import Optional
 
@@ -21,11 +23,14 @@ from config import (
     AUDIO_ARCHIVE_DIR,
     AUDIO_PENDING_DIR,
     AUDIO_SAMPLE_DIR,
+    DIARIZATION_MODE,
     HF_TOKEN,
     PYANNOTE_MODEL,
     PYANNOTE_MODEL_DIR,
     SPEAKER_SAMPLE_DURATION,
 )
+
+_pipeline = None
 
 
 def _convert_to_wav(aac_path: Path, wav_path: Path) -> None:
@@ -43,16 +48,44 @@ def _convert_to_wav(aac_path: Path, wav_path: Path) -> None:
     )
 
 
+def _wav_duration_seconds(wav_path: Path) -> float:
+    """Return WAV duration in seconds without invoking external tools."""
+    with wave.open(str(wav_path), 'rb') as wav:
+        frame_count = wav.getnframes()
+        frame_rate = wav.getframerate()
+        if frame_rate <= 0:
+            return 0.0
+        return frame_count / float(frame_rate)
+
+
 def _load_pipeline():
     """Load the pyannote diarization pipeline (cached after first call)."""
+    global _pipeline
+    if _pipeline is not None:
+        return _pipeline
+
+    start = time.monotonic()
+    print(f'[diarize]   Loading PyAnnote model {PYANNOTE_MODEL}', flush=True)
     from pyannote.audio import Pipeline  # type: ignore
 
     kwargs = {'cache_dir': PYANNOTE_MODEL_DIR}
     if HF_TOKEN:
         kwargs['use_auth_token'] = HF_TOKEN
 
-    pipeline = Pipeline.from_pretrained(PYANNOTE_MODEL, **kwargs)
-    return pipeline
+    _pipeline = Pipeline.from_pretrained(PYANNOTE_MODEL, **kwargs)
+    print(
+        f'[diarize]   PyAnnote model loaded in {time.monotonic() - start:.1f}s',
+        flush=True,
+    )
+    return _pipeline
+
+
+def _single_speaker_segments(wav_path: Path) -> list[dict]:
+    """Create one speaker segment covering the whole file."""
+    duration = round(_wav_duration_seconds(wav_path), 3)
+    if duration <= 0:
+        return []
+    return [{'speaker': 'SPEAKER_00', 'start': 0.0, 'end': duration}]
 
 
 def diarize_file(wav_path: Path) -> list[dict]:
@@ -62,12 +95,32 @@ def diarize_file(wav_path: Path) -> list[dict]:
     Returns a list of segments:
         [{'speaker': 'SPEAKER_00', 'start': 0.0, 'end': 2.3}, ...]
     """
+    if DIARIZATION_MODE == 'single':
+        print('[diarize]   Using single-speaker diarization mode', flush=True)
+        return _single_speaker_segments(wav_path)
+
+    if DIARIZATION_MODE != 'pyannote':
+        raise ValueError(
+            f'Unsupported DIARIZATION_MODE={DIARIZATION_MODE}. '
+            'Use "single" or "pyannote".'
+        )
+
     pipeline = _load_pipeline()
+    duration = _wav_duration_seconds(wav_path)
+    start = time.monotonic()
+    print(
+        f'[diarize]   Running PyAnnote diarization duration={duration:.1f}s',
+        flush=True,
+    )
     diarization = pipeline(str(wav_path))
     segments = [
         {'speaker': label, 'start': round(turn.start, 3), 'end': round(turn.end, 3)}
         for turn, _, label in diarization.itertracks(yield_label=True)
     ]
+    print(
+        f'[diarize]   PyAnnote diarization finished in {time.monotonic() - start:.1f}s',
+        flush=True,
+    )
     return segments
 
 
@@ -133,7 +186,11 @@ def run_diarization(date: str) -> None:
     archive_dir.mkdir(parents=True, exist_ok=True)
     sample_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f'[diarize] Processing {len(aac_files)} file(s) for {date}')
+    print(
+        f'[diarize] Processing {len(aac_files)} file(s) for {date} '
+        f'(mode={DIARIZATION_MODE})',
+        flush=True,
+    )
 
     results: dict[str, dict] = {}
 
@@ -142,18 +199,25 @@ def run_diarization(date: str) -> None:
             stem = aac_path.stem
             wav_path = Path(tmpdir) / f'{stem}.wav'
 
-            print(f'[diarize]   Converting {aac_path.name} → WAV')
+            print(f'[diarize]   Converting {aac_path.name} → WAV', flush=True)
             try:
                 _convert_to_wav(aac_path, wav_path)
             except subprocess.CalledProcessError as exc:
-                print(f'[diarize]   ERROR converting {aac_path.name}: {exc.stderr.decode()}')
+                print(
+                    f'[diarize]   ERROR converting {aac_path.name}: {exc.stderr.decode()}',
+                    flush=True,
+                )
                 continue
 
-            print(f'[diarize]   Diarizing {aac_path.name}')
+            print(
+                f'[diarize]   Diarizing {aac_path.name} '
+                f'(duration={_wav_duration_seconds(wav_path):.1f}s)',
+                flush=True,
+            )
             try:
                 segments = diarize_file(wav_path)
             except Exception as exc:
-                print(f'[diarize]   ERROR diarizing {aac_path.name}: {exc}')
+                print(f'[diarize]   ERROR diarizing {aac_path.name}: {exc}', flush=True)
                 continue
 
             # Save sample clips for each unique speaker
@@ -173,11 +237,11 @@ def run_diarization(date: str) -> None:
                 'sample_paths': sample_paths,
             }
             print(f'[diarize]   {aac_path.name}: {len(segments)} segment(s), '
-                  f'{len(speakers_seen)} speaker(s)')
+                  f'{len(speakers_seen)} speaker(s)', flush=True)
 
     out_path = archive_dir / 'diarization.json'
     out_path.write_text(json.dumps(results, indent=2))
-    print(f'[diarize] Written → {out_path}')
+    print(f'[diarize] Written → {out_path}', flush=True)
 
 
 if __name__ == '__main__':

@@ -28,6 +28,7 @@ WHISPER_MODEL: str = os.environ.get('WHISPER_MODEL', 'large-v3')
 PYANNOTE_MODEL: str = os.environ.get(
     'PYANNOTE_MODEL', 'pyannote/speaker-diarization-3.1'
 )
+DIARIZATION_MODE: str = os.environ.get('DIARIZATION_MODE', 'single').strip().lower()
 ECAPA_MODEL: str = os.environ.get(
     'ECAPA_MODEL', 'speechbrain/spkrec-ecapa-voxceleb'
 )
