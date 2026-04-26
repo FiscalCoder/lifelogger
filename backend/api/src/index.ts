@@ -8,6 +8,7 @@ import { uploadRouter } from './routes/upload';
 import { speakersRouter, unknownsHandler } from './routes/speakers';
 import { audioRouter } from './routes/audio';
 import { queryRouter } from './routes/query';
+import { verifyDatabaseConnection } from './db/client';
 
 const REQUIRED_ENV = [
   'DATABASE_URL',
@@ -43,4 +44,5 @@ const port = Number(process.env.PORT) || 8000;
 
 serve({ fetch: app.fetch, port }, () => {
   console.log(`[api] Listening on port ${port}`);
+  void verifyDatabaseConnection();
 });

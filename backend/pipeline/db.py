@@ -14,7 +14,7 @@ from config import DB_URL
 @contextlib.contextmanager
 def get_connection() -> Generator[psycopg2.extensions.connection, None, None]:
     """Context manager that yields a committed connection or rolls back on error."""
-    conn = psycopg2.connect(DB_URL)
+    conn = psycopg2.connect(DB_URL, connect_timeout=5)
     try:
         yield conn
         conn.commit()

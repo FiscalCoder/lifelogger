@@ -13,11 +13,39 @@ import sys
 import time
 import traceback
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
-from config import AUDIO_PENDING_DIR
+from config import AUDIO_PENDING_DIR, DB_URL
 from db import execute, fetch_all, get_connection
 
 POLL_INTERVAL: int = int(os.environ.get('WORKER_POLL_INTERVAL', '15'))
+IDLE_LOG_INTERVAL: int = int(os.environ.get('WORKER_IDLE_LOG_INTERVAL', '60'))
+
+
+def describe_db_url() -> str:
+    """Return a password-free description of the configured database URL."""
+    parsed = urlparse(DB_URL)
+    sslmode = parse_qs(parsed.query).get('sslmode', ['not-set'])[0]
+    database = parsed.path.lstrip('/') or 'unknown'
+    return (
+        f'user={parsed.username or "unknown"} '
+        f'host={parsed.hostname or "unknown"} '
+        f'port={parsed.port or 5432} '
+        f'database={database} sslmode={sslmode}'
+    )
+
+
+def verify_db_connection() -> None:
+    """Log a one-time database connectivity check at worker startup."""
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('SELECT current_user, current_database()')
+                user, database = cur.fetchone()
+        print(f'[worker] DB connection ok user={user} database={database}', flush=True)
+    except Exception:
+        print('[worker] DB connection failed:', flush=True)
+        traceback.print_exc()
 
 
 def get_pending_uploads() -> list[dict]:
@@ -104,12 +132,15 @@ def mark_processed(upload_ids: list[str]) -> None:
 def run_worker() -> None:
     """Main polling loop."""
     print(f'[worker] Starting real-time pipeline worker (poll every {POLL_INTERVAL}s)')
-    sys.stdout.flush()
+    print(f'[worker] Config pending_dir={AUDIO_PENDING_DIR} db={describe_db_url()}')
+    verify_db_connection()
 
+    last_idle_log = 0.0
     while True:
         try:
             rows = get_pending_uploads()
             if rows:
+                print(f'[worker] Found {len(rows)} received upload(s)', flush=True)
                 # Group by date
                 date_groups: dict[str, list[str]] = {}
                 for row in rows:
@@ -132,6 +163,11 @@ def run_worker() -> None:
                         traceback.print_exc()
 
                 sys.stdout.flush()
+            else:
+                now = time.monotonic()
+                if now - last_idle_log >= IDLE_LOG_INTERVAL:
+                    print('[worker] Idle: no upload_queue rows with status=received', flush=True)
+                    last_idle_log = now
 
         except Exception:
             print('[worker] ERROR in poll loop:')
