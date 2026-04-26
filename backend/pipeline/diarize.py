@@ -10,11 +10,13 @@ Writes: AUDIO_ARCHIVE_DIR/<date>/diarization.json
 """
 
 import json
+import logging
 import os
 import subprocess
 import sys
 import tempfile
 import time
+import warnings
 import wave
 from pathlib import Path
 from typing import Optional
@@ -31,6 +33,28 @@ from config import (
 )
 
 _pipeline = None
+
+
+def _configure_pyannote_runtime() -> None:
+    """Reduce known noisy PyAnnote/Torch CPU warnings without hiding failures."""
+    warning_patterns = (
+        r'torchaudio\._backend\..* has been deprecated.*',
+        r'`torchaudio\.backend\.common\.AudioMetaData` has been moved.*',
+        r'std\(\): degrees of freedom is <= 0\..*',
+    )
+    for pattern in warning_patterns:
+        warnings.filterwarnings('ignore', message=pattern, category=UserWarning)
+
+    logging.getLogger('pyannote.audio').setLevel(logging.ERROR)
+
+    try:
+        import torch  # type: ignore
+
+        nnpack = getattr(torch.backends, 'nnpack', None)
+        if nnpack and hasattr(nnpack, 'set_flags'):
+            nnpack.set_flags(False)
+    except Exception:
+        pass
 
 
 def _convert_to_wav(aac_path: Path, wav_path: Path) -> None:
@@ -66,6 +90,7 @@ def _load_pipeline():
 
     start = time.monotonic()
     print(f'[diarize]   Loading PyAnnote model {PYANNOTE_MODEL}', flush=True)
+    _configure_pyannote_runtime()
     from pyannote.audio import Pipeline  # type: ignore
 
     kwargs = {'cache_dir': PYANNOTE_MODEL_DIR}
