@@ -376,16 +376,18 @@ DATABASE_URL="postgres://lifelogger:<URL_ENCODED_PASSWORD>@lifelogger.c3ueqi6k0d
 API_TOKEN=replace_with_a_strong_random_token
 HF_TOKEN=hf_xxx
 SPEAKER_MATCH_THRESHOLD=0.82
-DIARIZATION_MODE=single
+DIARIZATION_MODE=pyannote
+DIARIZATION_HEARTBEAT_SECONDS=30
 MAX_WORKERS=2
 OMP_NUM_THREADS=2
 MKL_NUM_THREADS=2
 OPENBLAS_NUM_THREADS=2
 ```
 
-`DIARIZATION_MODE=single` keeps the CPU-only VPS pipeline moving by treating each
-audio chunk as one speaker segment. Set it to `pyannote` only when you want full
-speaker diarization and can tolerate the CPU cost.
+`DIARIZATION_MODE=pyannote` enables real multi-speaker diarization. Keep
+`HF_TOKEN` set and accepted for `pyannote/speaker-diarization-3.1`.
+`DIARIZATION_HEARTBEAT_SECONDS` controls progress logs while model loading or
+inference is running.
 
 The API service reads this file with `EnvironmentFile`. Docker Compose reads it
 with `env_file`.
