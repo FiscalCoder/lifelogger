@@ -61,4 +61,13 @@
         android:contentDescription="@string/action_play_recording"
         android:padding="8dp" />
 
+    <ImageButton
+        android:id="@+id/btn_delete"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/action_delete_recording"
+        android:padding="8dp"
+        android:src="@android:drawable/ic_menu_delete" />
+
 </LinearLayout>

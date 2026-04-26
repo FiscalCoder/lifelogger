@@ -54,17 +54,14 @@ object AppConfig {
     /** Attach Android's platform noise suppressor to full recording sessions when available. */
     const val ENABLE_NOISE_SUPPRESSOR = true
 
-    /**
-     * Seconds of continuous silence before a recording chunk is closed (aggressive mode).
-     * Power-saver mode uses 5s — set via [LifeLoggerService.setBatteryMode].
-     */
-    const val SILENCE_THRESHOLD_SECONDS = 2L
+    /** Seconds of continuous below-threshold audio before a recording chunk is closed. */
+    const val SILENCE_THRESHOLD_SECONDS = 10L
 
     /** Polling interval in aggressive mode (ms). Power-saver uses 250ms. */
     const val VAD_POLL_INTERVAL_MS = 100L
 
-    /** Rollover guard to keep noisy rooms from producing backend-rejected hour-long chunks. */
-    const val MAX_CHUNK_DURATION_MS = 25L * 60L * 1_000L
+    /** Rollover guard to keep each recording chunk bounded. */
+    const val MAX_CHUNK_DURATION_MS = 2L * 60L * 1_000L
 
     // ─── Upload queue ─────────────────────────────────────────────────────────
 
@@ -73,6 +70,9 @@ object AppConfig {
 
     /** How often the periodic upload scheduler runs (seconds). */
     const val UPLOAD_INTERVAL_SECONDS = 60L
+
+    /** Time a new local chunk remains deleteable before scheduled upload can pick it up. */
+    const val UPLOAD_DELETE_GRACE_SECONDS = 60L
 
     // ─── Storage guard ────────────────────────────────────────────────────────
 

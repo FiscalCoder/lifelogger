@@ -27,9 +27,9 @@ import kotlin.math.sqrt
  *   1. VadEngine detects speech → calls [startChunk].
  *   2. [startChunk] opens AudioRecord (VadEngine has already paused its polling).
  *   3. Recording loop: reads PCM, writes to temp file, computes RMS per frame.
- *   4. When RMS < threshold for ≥ [silenceThresholdMs] → [finalizeChunk] is called.
- *   5. [finalizeChunk]: stops AudioRecord, encodes PCM → AAC, enqueues to UploadQueue.
- *   6. Calls [onChunkFinalized] so LifeLoggerService can resume VadEngine polling.
+ *   4. When RMS < threshold for ≥ [silenceThresholdMs], the chunk closes.
+ *   5. When max duration is reached, the chunk closes and the next chunk starts.
+ *   6. Closed chunks are encoded to AAC and enqueued to UploadQueue.
  *
  * AudioRecord is exclusively held during recording (not shared with VadEngine).
  * VadEngine releases the mic before calling [startChunk], so no conflict occurs.
@@ -43,8 +43,9 @@ class AudioChunkManager(
      * Invoked on the IO dispatcher after a chunk has been finalised.
      * @param saved true if the chunk was encoded and enqueued for upload
      * @param info  human-readable status message (e.g. "Saved 3.2s chunk" or error reason)
+     * @param resumeVad true when the foreground service should resume VAD polling
      */
-    val onChunkFinalized: (saved: Boolean, info: String) -> Unit
+    val onChunkFinalized: (saved: Boolean, info: String, resumeVad: Boolean) -> Unit
 ) {
 
     // ─── Audio config (matches Whisper expected input — DEC-003) ─────────────
@@ -67,6 +68,8 @@ class AudioChunkManager(
     // ─── Recording state ──────────────────────────────────────────────────────
 
     @Volatile private var recording = false
+    val isRecording: Boolean
+        get() = recording
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -82,11 +85,7 @@ class AudioChunkManager(
         scope.launch { recordLoop() }
     }
 
-    /**
-     * Update silence threshold when battery mode changes.
-     * aggressive = true  → 2 s silence (default)
-     * aggressive = false → 5 s silence (power-saver)
-     */
+    /** Update the silence threshold applied by the active recording loop. */
     fun setSilenceThreshold(ms: Long) {
         silenceThresholdMs = ms
     }
@@ -97,14 +96,14 @@ class AudioChunkManager(
         val minBuf = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING)
         if (minBuf <= 0) {
             recording = false
-            onChunkFinalized(false, "Mic unavailable (bad buffer size)")
+            onChunkFinalized(false, "Mic unavailable (bad buffer size)", true)
             return
         }
 
         val audioRecord = AudioInput.createRecord(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING, minBuf)
         if (audioRecord == null) {
             recording = false
-            onChunkFinalized(false, "Mic failed to initialise")
+            onChunkFinalized(false, "Mic failed to initialise", true)
             return
         }
 
@@ -113,6 +112,7 @@ class AudioChunkManager(
         val chunkStartMs = System.currentTimeMillis()
         var silenceStartMs = 0L
         var noiseSuppressor: NoiseSuppressor? = null
+        var rolloverAfterFinalize = false
 
         try {
             noiseSuppressor = createNoiseSuppressor(audioRecord)
@@ -137,6 +137,7 @@ class AudioChunkManager(
                     val rms = computeRms(buf, read)
                     val now = System.currentTimeMillis()
                     if (now - chunkStartMs >= AppConfig.MAX_CHUNK_DURATION_MS) {
+                        rolloverAfterFinalize = true
                         recording = false
                     }
                     if (rms < energyThreshold) {
@@ -155,11 +156,21 @@ class AudioChunkManager(
             audioRecord.release()
         }
 
+        if (rolloverAfterFinalize) {
+            recording = false
+            startChunk()
+        }
+
         // Finalize: encode PCM → AAC, enqueue for upload
         val durationS = (System.currentTimeMillis() - chunkStartMs) / 1_000f
+        val resumeVad = !rolloverAfterFinalize
         if (!tmpFile.exists() || tmpFile.length() == 0L || durationS < MIN_CHUNK_DURATION_S) {
             tmpFile.delete()
-            onChunkFinalized(false, "Chunk too short (${String.format("%.1f", durationS)}s)")
+            onChunkFinalized(
+                false,
+                "Chunk too short (${String.format("%.1f", durationS)}s)",
+                resumeVad,
+            )
             return
         }
 
@@ -173,11 +184,16 @@ class AudioChunkManager(
 
         if (encodeResult.isSuccess && aacFile.exists() && aacFile.length() > 0) {
             uploadQueue.enqueue(aacFile.absolutePath, recordedAt, durationS)
-            onChunkFinalized(true, "Saved ${String.format("%.1f", durationS)}s chunk")
+            val suffix = if (rolloverAfterFinalize) "; rolling over" else ""
+            onChunkFinalized(
+                true,
+                "Saved ${String.format("%.1f", durationS)}s chunk$suffix",
+                resumeVad,
+            )
         } else {
             val reason = encodeResult.exceptionOrNull()?.message ?: "empty output"
             aacFile.delete()
-            onChunkFinalized(false, "Encoding failed: $reason")
+            onChunkFinalized(false, "Encoding failed: $reason", resumeVad)
         }
     }
 

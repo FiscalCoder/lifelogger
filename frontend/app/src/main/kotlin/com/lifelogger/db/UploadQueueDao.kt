@@ -14,6 +14,9 @@ interface UploadQueueDao {
     @Query("SELECT * FROM upload_queue WHERE status = 'pending' AND attempts < 3 ORDER BY recordedAt ASC")
     suspend fun getPending(): List<UploadQueueEntity>
 
+    @Query("SELECT * FROM upload_queue WHERE status = 'pending' AND attempts < 3 AND queuedAt <= :readyBeforeMs ORDER BY recordedAt ASC")
+    suspend fun getPendingReadyForUpload(readyBeforeMs: Long): List<UploadQueueEntity>
+
     @Query("SELECT * FROM upload_queue WHERE status = 'failed' ORDER BY recordedAt ASC")
     suspend fun getFailed(): List<UploadQueueEntity>
 
@@ -34,4 +37,7 @@ interface UploadQueueDao {
 
     @Query("SELECT * FROM upload_queue ORDER BY recordedAt DESC LIMIT 100")
     suspend fun getRecent(): List<UploadQueueEntity>
+
+    @Query("DELETE FROM upload_queue WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

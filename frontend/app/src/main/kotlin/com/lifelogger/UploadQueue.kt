@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
  * WiFi-aware upload drain for the SQLite chunk queue.
  *
  * Design:
- *   - Scheduled drain every [AppConfig.UPLOAD_INTERVAL_SECONDS] (first tick is immediate).
+ *   - Scheduled drain every [AppConfig.UPLOAD_INTERVAL_SECONDS].
  *   - [drainIfWifi]: checks WiFi, drains pending then retries failed. Concurrency-safe.
  *   - Upload one chunk at a time to avoid saturating slow home WiFi.
  *   - On 200: mark uploaded, delete local file.
@@ -49,10 +49,9 @@ class UploadQueue(private val context: Context) {
     @Volatile private var draining = false
 
     fun start() {
-        // initialDelay = 0 so the first drain runs immediately when service starts
         scheduledFuture = scheduler.scheduleAtFixedRate(
             { scope.launch { drainIfWifi() } },
-            0L,
+            AppConfig.UPLOAD_INTERVAL_SECONDS,
             AppConfig.UPLOAD_INTERVAL_SECONDS,
             TimeUnit.SECONDS
         )
@@ -73,18 +72,16 @@ class UploadQueue(private val context: Context) {
                     durationSeconds = durationSeconds
                 )
             )
-            // Opportunistic immediate upload if already on WiFi
-            drainIfWifi()
         }
     }
 
     /** Check WiFi and drain if connected. No-op if already draining or not on WiFi. */
-    suspend fun drainIfWifi() {
+    suspend fun drainIfWifi(ignoreGrace: Boolean = false) {
         if (draining) return
         if (!NetworkUtil.isWifi(context)) return
         draining = true
         try {
-            drainPending()
+            drainPending(ignoreGrace)
             retryFailed()
         } finally {
             draining = false
@@ -98,12 +95,23 @@ class UploadQueue(private val context: Context) {
 
     // ─── Private drain logic ──────────────────────────────────────────────────
 
-    private suspend fun drainPending() {
-        var batch = dao.getPending().take(AppConfig.UPLOAD_BATCH_SIZE)
+    private suspend fun drainPending(ignoreGrace: Boolean) {
+        var batch = getUploadablePending(ignoreGrace)
         while (batch.isNotEmpty()) {
             for (item in batch) uploadItem(item)
-            batch = dao.getPending().take(AppConfig.UPLOAD_BATCH_SIZE)
+            batch = getUploadablePending(ignoreGrace)
         }
+    }
+
+    private suspend fun getUploadablePending(ignoreGrace: Boolean): List<UploadQueueEntity> {
+        val pending = if (ignoreGrace) {
+            dao.getPending()
+        } else {
+            val readyBefore = System.currentTimeMillis() -
+                AppConfig.UPLOAD_DELETE_GRACE_SECONDS * 1_000L
+            dao.getPendingReadyForUpload(readyBefore)
+        }
+        return pending.take(AppConfig.UPLOAD_BATCH_SIZE)
     }
 
     private suspend fun uploadItem(item: UploadQueueEntity) {

@@ -2,6 +2,8 @@ package com.lifelogger.ui
 
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -32,6 +34,8 @@ import java.time.format.DateTimeFormatter
 class RecordingsFragment : Fragment() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val handler = Handler(Looper.getMainLooper())
+    private val refreshIntervalMs = 2_000L
 
     private var recyclerView: RecyclerView? = null
     private var emptyView: TextView? = null
@@ -39,6 +43,13 @@ class RecordingsFragment : Fragment() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var playingId: String? = null
+
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            loadRecordings()
+            handler.postDelayed(this, refreshIntervalMs)
+        }
+    }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -59,10 +70,17 @@ class RecordingsFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         loadRecordings()
+        handler.postDelayed(refreshRunnable, refreshIntervalMs)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(refreshRunnable)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        handler.removeCallbacks(refreshRunnable)
         stopPlayer()
         recyclerView = null
         emptyView = null
@@ -83,8 +101,9 @@ class RecordingsFragment : Fragment() {
                 } else {
                     recyclerView?.visibility = View.VISIBLE
                     emptyView?.visibility = View.GONE
-                    adapter = RecordingAdapter(items, ::togglePlay)
+                    adapter = RecordingAdapter(items, ::togglePlay, ::deleteRecording)
                     recyclerView?.adapter = adapter
+                    adapter?.setPlaying(playingId)
                 }
             }
         }
@@ -124,11 +143,28 @@ class RecordingsFragment : Fragment() {
         playingId = null
     }
 
+    private fun deleteRecording(item: UploadQueueEntity) {
+        if (item.status == "uploaded") return
+        if (playingId == item.id) {
+            stopPlayer()
+        }
+
+        val db = AppDatabase.getInstance(requireContext())
+        scope.launch {
+            runCatching { File(item.filePath).delete() }
+            db.uploadQueueDao().deleteById(item.id)
+            withContext(Dispatchers.Main) {
+                if (isAdded) loadRecordings()
+            }
+        }
+    }
+
     // ── Adapter ───────────────────────────────────────────────────────────────
 
     private inner class RecordingAdapter(
         private val items: List<UploadQueueEntity>,
-        private val onPlayToggle: (UploadQueueEntity) -> Unit
+        private val onPlayToggle: (UploadQueueEntity) -> Unit,
+        private val onDelete: (UploadQueueEntity) -> Unit
     ) : RecyclerView.Adapter<RecordingAdapter.ViewHolder>() {
 
         private var currentPlayingId: String? = null
@@ -157,6 +193,7 @@ class RecordingsFragment : Fragment() {
             private val tvDuration: TextView = view.findViewById(R.id.tv_rec_duration)
             private val tvStatus: TextView = view.findViewById(R.id.tv_rec_status)
             private val btnPlay: ImageButton = view.findViewById(R.id.btn_play)
+            private val btnDelete: ImageButton = view.findViewById(R.id.btn_delete)
 
             fun bind(item: UploadQueueEntity) {
                 tvTime.text = formatTime(item.recordedAt)
@@ -178,6 +215,13 @@ class RecordingsFragment : Fragment() {
                 btnPlay.isEnabled = fileExists
                 btnPlay.alpha = if (fileExists) 1f else 0.35f
                 btnPlay.setOnClickListener { onPlayToggle(item) }
+
+                val canDelete = item.status != "uploaded"
+                btnDelete.isEnabled = canDelete
+                btnDelete.alpha = if (canDelete) 1f else 0.35f
+                btnDelete.setOnClickListener {
+                    if (canDelete) onDelete(item)
+                }
             }
 
             private fun formatTime(iso: String): String = runCatching {

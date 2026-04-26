@@ -21,6 +21,7 @@
     <!-- Recordings fragment -->
     <string name="label_no_recordings">No local recordings yet</string>
     <string name="action_play_recording">Play / Stop recording</string>
+    <string name="action_delete_recording">Delete recording</string>
 
     <!-- Bottom navigation -->
     <string name="nav_status">Status</string>

@@ -11,6 +11,7 @@ data class UploadQueueEntity(
     val filePath: String,
     val recordedAt: String,          // ISO-8601 string
     val durationSeconds: Float,
+    val queuedAt: Long = System.currentTimeMillis(),
     val attempts: Int = 0,
     val status: String = "pending"   // pending | uploaded | failed
 )

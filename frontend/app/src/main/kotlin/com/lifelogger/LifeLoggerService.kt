@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.lifelogger.config.AppConfig
 import com.lifelogger.db.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -91,15 +92,19 @@ class LifeLoggerService : Service() {
         uploadQueue = UploadQueue(this)
 
         // AudioChunkManager calls onChunkFinalized when encoding is done.
-        // This resumes VadEngine polling so it can detect the next speech segment.
+        // Rollover chunks keep VAD paused because the next chunk starts immediately.
         audioChunkManager = AudioChunkManager(
             context = this,
             uploadQueue = uploadQueue,
-            onChunkFinalized = { saved, info ->
+            onChunkFinalized = { saved, info, resumeVad ->
                 if (saved) chunksSaved++
                 lastChunkInfo = info
-                recordingState = STATE_LISTENING
-                vadEngine.resume()
+                if (resumeVad) {
+                    recordingState = STATE_LISTENING
+                    vadEngine.resume()
+                } else if (audioChunkManager.isRecording) {
+                    recordingState = STATE_RECORDING
+                }
             }
         )
 
@@ -133,16 +138,16 @@ class LifeLoggerService : Service() {
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
-    /** Relays battery mode to both VadEngine (poll interval) and AudioChunkManager (silence threshold). */
+    /** Relays battery mode to VAD polling while keeping the configured silence threshold. */
     fun setBatteryMode(aggressive: Boolean) {
         vadEngine.setBatteryMode(aggressive)
-        audioChunkManager.setSilenceThreshold(if (aggressive) 2_000L else 5_000L)
+        audioChunkManager.setSilenceThreshold(AppConfig.SILENCE_THRESHOLD_SECONDS * 1_000L)
         updateNotificationText()
     }
 
     /** Triggers an immediate upload drain. Called by StatusFragment "Upload now" button. */
     fun drainNow() {
-        scope.launch { uploadQueue.drainIfWifi() }
+        scope.launch { uploadQueue.drainIfWifi(ignoreGrace = true) }
     }
 
     /** Resets failed chunks to pending so the next drain will retry them. */
