@@ -47,6 +47,19 @@ export const unknownSpeakers = pgTable('unknown_speakers', {
   audioSample: text('audio_sample'),
   recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull(),
   resolved: boolean('resolved').default(false).notNull(),
+  resolutionKind: text('resolution_kind'),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+});
+
+// Upload queue — tracks chunks received from mobile
+export const uploadQueue = pgTable('upload_queue', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  deviceId: text('device_id').notNull(),
+  filePath: text('file_path').notNull(),
+  recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull(),
+  durationSeconds: real('duration_seconds'),
+  processedAt: timestamp('processed_at', { withTimezone: true }),
+  status: text('status').default('received').notNull(),
 });
 
 // Final assembled transcripts
@@ -60,15 +73,11 @@ export const transcriptSegments = pgTable('transcript_segments', {
   sourceFile: text('source_file').notNull(),
   startTime: text('start_time'),
   endTime: text('end_time'),
-});
-
-// Upload queue — tracks chunks received from mobile
-export const uploadQueue = pgTable('upload_queue', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  deviceId: text('device_id').notNull(),
-  filePath: text('file_path').notNull(),
-  recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull(),
-  durationSeconds: real('duration_seconds'),
-  processedAt: timestamp('processed_at', { withTimezone: true }),
-  status: text('status').default('received').notNull(),
+  sourceKind: text('source_kind').default('unknown_mic').notNull(),
+  excludeFromRag: boolean('exclude_from_rag').default(false).notNull(),
+  sourceUploadId: uuid('source_upload_id').references(() => uploadQueue.id, {
+    onDelete: 'set null',
+  }),
+  startSeconds: real('start_seconds'),
+  endSeconds: real('end_seconds'),
 });

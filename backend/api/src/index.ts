@@ -5,7 +5,7 @@ import { requestLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { bearerAuth } from './middleware/auth';
 import { uploadRouter } from './routes/upload';
-import { speakersRouter, unknownsHandler } from './routes/speakers';
+import { speakersRouter, unknownsHandler, markMediaHandler } from './routes/speakers';
 import { audioRouter } from './routes/audio';
 import { queryRouter } from './routes/query';
 import { verifyDatabaseConnection } from './db/client';
@@ -37,6 +37,7 @@ app.route('/speakers', speakersRouter);
 app.route('/audio', audioRouter);
 app.route('/query', queryRouter);
 app.get('/unknowns', unknownsHandler);
+app.post('/unknowns/:id/mark-media', markMediaHandler);
 
 app.onError(errorHandler);
 

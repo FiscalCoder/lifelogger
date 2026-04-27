@@ -72,6 +72,7 @@ export async function listUnknowns() {
       tempName: unknownSpeakers.tempName,
       audioSample: unknownSpeakers.audioSample,
       recordedAt: unknownSpeakers.recordedAt,
+      resolutionKind: unknownSpeakers.resolutionKind,
     })
     .from(unknownSpeakers)
     .where(eq(unknownSpeakers.resolved, false))
@@ -124,7 +125,11 @@ export async function nameSpeaker(
   // Mark unknown resolved
   await db
     .update(unknownSpeakers)
-    .set({ resolved: true })
+    .set({
+      resolved: true,
+      resolutionKind: 'person',
+      resolvedAt: sql`NOW()`,
+    })
     .where(eq(unknownSpeakers.id, unknownId));
 
   // Reattribute transcript segments that were labeled with the temp name
@@ -133,6 +138,36 @@ export async function nameSpeaker(
     .set({ speaker: name })
     .where(eq(transcriptSegments.speaker, unknown.tempName));
 
+  return { success: true };
+}
+
+export async function markUnknownAsMedia(unknownId: string): Promise<{ success: true }> {
+  const [unknown] = await db
+    .select()
+    .from(unknownSpeakers)
+    .where(eq(unknownSpeakers.id, unknownId))
+    .limit(1);
+  if (!unknown) {
+    throw Object.assign(new Error('Unknown speaker not found'), { status: 404 });
+  }
+  if (unknown.resolved) {
+    throw Object.assign(new Error('Speaker already resolved'), { status: 409 });
+  }
+  await db
+    .update(unknownSpeakers)
+    .set({
+      resolved: true,
+      resolutionKind: 'media_public',
+      resolvedAt: sql`NOW()`,
+    })
+    .where(eq(unknownSpeakers.id, unknownId));
+  await db
+    .update(transcriptSegments)
+    .set({
+      sourceKind: 'media_public',
+      excludeFromRag: false,
+    })
+    .where(eq(transcriptSegments.speaker, unknown.tempName));
   return { success: true };
 }
 

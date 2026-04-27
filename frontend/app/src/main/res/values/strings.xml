@@ -17,11 +17,25 @@
     <string name="hint_search_query">Search transcripts…</string>
     <string name="action_search">Search</string>
     <string name="error_backend_unavailable">Backend not yet available</string>
+    <string name="action_play_segment">Play source audio</string>
 
     <!-- Recordings fragment -->
     <string name="label_no_recordings">No local recordings yet</string>
     <string name="action_play_recording">Play / Stop recording</string>
     <string name="action_delete_recording">Delete recording</string>
+
+    <!-- Speaker review fragment -->
+    <string name="label_loading_unknown_speakers">Loading unknown speakers…</string>
+    <string name="label_no_unknown_speakers">No unknown speakers to review</string>
+    <string name="hint_speaker_name">Enter person\'s name</string>
+    <string name="label_media_public_voice">Media/public voice</string>
+    <string name="action_play_sample">Play / Stop sample</string>
+    <string name="action_save_speaker">Save</string>
+    <string name="action_mark_media">Mark media</string>
+    <string name="action_skip">Skip</string>
+    <string name="error_speaker_name_required">Enter a name or mark as media/public.</string>
+    <string name="error_audio_sample_unavailable">Audio sample unavailable</string>
+    <string name="error_source_audio_unavailable">Source audio unavailable</string>
 
     <!-- Bottom navigation -->
     <string name="nav_status">Status</string>

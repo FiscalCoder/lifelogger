@@ -60,18 +60,39 @@ def _resolve_speaker(
     return info.get('temp_name') or speaker_label
 
 
-def _segment_exists(source_file: str, start_time: str, conn) -> bool:
+def _segment_exists(source_file: str, start_seconds: float, start_time: str, conn) -> bool:
     """Idempotency guard: returns True if segment already in DB."""
     row = fetch_one(
         """
         SELECT id FROM transcript_segments
-        WHERE source_file = %s AND start_time = %s
+        WHERE source_file = %s
+          AND (
+              ABS(start_seconds - %s) < 0.001
+              OR (start_seconds IS NULL AND start_time = %s)
+          )
         LIMIT 1
         """,
-        (source_file, start_time),
+        (source_file, start_seconds, start_time),
         conn=conn,
     )
     return row is not None
+
+
+def _lookup_source_upload_id(filename: str, conn) -> Optional[str]:
+    """Return upload_queue.id for the source audio file when available."""
+    row = fetch_one(
+        """
+        SELECT id
+        FROM upload_queue
+        WHERE file_path = %s
+           OR file_path LIKE %s
+        ORDER BY recorded_at DESC
+        LIMIT 1
+        """,
+        (filename, f'%/{filename}'),
+        conn=conn,
+    )
+    return str(row['id']) if row else None
 
 
 def assemble_day(date: str) -> list[dict]:
@@ -107,12 +128,15 @@ def assemble_day(date: str) -> list[dict]:
     with get_connection() as conn:
         for filename in diarization:
             trans_segments: list[dict] = transcription.get(filename, [])
+            source_upload_id = _lookup_source_upload_id(filename, conn)
 
             for seg in trans_segments:
                 speaker_label = seg.get('speaker', 'UNKNOWN')
                 speaker_name = _resolve_speaker(filename, speaker_label, speaker_ids)
-                start_time = _format_time(seg.get('start', 0.0))
-                end_time = _format_time(seg.get('end', 0.0))
+                start_seconds = float(seg.get('start', 0.0))
+                end_seconds = float(seg.get('end', 0.0))
+                start_time = _format_time(start_seconds)
+                end_time = _format_time(end_seconds)
                 text = seg.get('text', '').strip()
                 language = seg.get('language')
 
@@ -120,7 +144,7 @@ def assemble_day(date: str) -> list[dict]:
                     continue
 
                 recorded_at = _recorded_at_from_filename(
-                    filename, seg.get('start', 0.0), date
+                    filename, start_seconds, date
                 )
 
                 segment_dict = {
@@ -131,19 +155,32 @@ def assemble_day(date: str) -> list[dict]:
                     'sourceFile': filename,
                     'startTime': start_time,
                     'endTime': end_time,
+                    'sourceUploadId': source_upload_id,
+                    'startSeconds': start_seconds,
+                    'endSeconds': end_seconds,
+                    'sourceKind': 'unknown_mic',
+                    'excludeFromRag': False,
                 }
                 assembled.append(segment_dict)
 
                 # Idempotency: skip if already in DB
-                if _segment_exists(filename, start_time, conn):
+                if _segment_exists(filename, start_seconds, start_time, conn):
                     skipped += 1
                     continue
 
                 execute(
                     """
                     INSERT INTO transcript_segments
-                        (speaker, text, language, recorded_at, source_file, start_time, end_time)
-                    VALUES (%s, %s, %s, %s::timestamptz, %s, %s, %s)
+                        (
+                            speaker, text, language, recorded_at, source_file,
+                            start_time, end_time, source_upload_id,
+                            start_seconds, end_seconds, source_kind, exclude_from_rag
+                        )
+                    VALUES (
+                        %s, %s, %s, %s::timestamptz, %s,
+                        %s, %s, %s::uuid,
+                        %s, %s, %s, %s
+                    )
                     """,
                     (
                         speaker_name,
@@ -153,6 +190,11 @@ def assemble_day(date: str) -> list[dict]:
                         filename,
                         start_time,
                         end_time,
+                        source_upload_id,
+                        start_seconds,
+                        end_seconds,
+                        'unknown_mic',
+                        False,
                     ),
                     conn=conn,
                 )

@@ -24,6 +24,8 @@ export interface UnknownSpeakerRow {
   audioSample: string | null;
   recordedAt: Date;
   resolved: boolean;
+  resolutionKind: string | null;
+  resolvedAt: Date | null;
 }
 
 export interface TranscriptSegmentRow {
@@ -36,6 +38,11 @@ export interface TranscriptSegmentRow {
   sourceFile: string;
   startTime: string | null;
   endTime: string | null;
+  sourceKind: string;
+  excludeFromRag: boolean;
+  sourceUploadId: string | null;
+  startSeconds: number | null;
+  endSeconds: number | null;
 }
 
 export interface UploadResult {
@@ -50,6 +57,11 @@ export interface QueryResult {
   similarity: number;
   language: string | null;
   startTime: string | null;
+  id: string;
+  sourceFile: string;
+  sourceKind: string;
+  startSeconds: number | null;
+  endSeconds: number | null;
 }
 
 export interface NameSpeakerBody {

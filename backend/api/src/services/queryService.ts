@@ -1,14 +1,19 @@
-import { ilike, desc, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, sql } from 'drizzle-orm';
 import { db } from '../db/client';
 import { transcriptSegments } from '../db/schema';
 
 export interface SearchResult {
+  id: string;
   speaker: string;
   text: string;
   recordedAt: Date;
   similarity: number;
   language: string | null;
   startTime: string | null;
+  sourceFile: string;
+  sourceKind: string;
+  startSeconds: number | null;
+  endSeconds: number | null;
 }
 
 // MVP: full-text ILIKE search.
@@ -35,14 +40,22 @@ export async function search(query: string): Promise<SearchResult[]> {
 
   const rows = await db
     .select({
+      id: transcriptSegments.id,
       speaker: transcriptSegments.speaker,
       text: transcriptSegments.text,
       recordedAt: transcriptSegments.recordedAt,
       language: transcriptSegments.language,
       startTime: transcriptSegments.startTime,
+      sourceFile: transcriptSegments.sourceFile,
+      sourceKind: transcriptSegments.sourceKind,
+      startSeconds: transcriptSegments.startSeconds,
+      endSeconds: transcriptSegments.endSeconds,
     })
     .from(transcriptSegments)
-    .where(ilike(transcriptSegments.text, pattern))
+    .where(and(
+      ilike(transcriptSegments.text, pattern),
+      eq(transcriptSegments.excludeFromRag, false),
+    ))
     .orderBy(desc(transcriptSegments.recordedAt))
     .limit(20);
 

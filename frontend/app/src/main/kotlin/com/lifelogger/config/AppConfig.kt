@@ -1,6 +1,7 @@
 package com.lifelogger.config
 
 import android.media.MediaRecorder
+import android.net.Uri
 import com.lifelogger.BuildConfig
 
 /**
@@ -18,7 +19,17 @@ object AppConfig {
         get() = mapOf("Authorization" to AUTHORIZATION_HEADER)
     val UPLOAD_ENDPOINT: String get() = "$SERVER_BASE_URL/upload"
     val QUERY_ENDPOINT: String get() = "$SERVER_BASE_URL/query"
-    val SPEAKERS_UI_URL: String get() = "$SERVER_BASE_URL/speakers/ui"
+    val UNKNOWN_SPEAKERS_ENDPOINT: String get() = "$SERVER_BASE_URL/unknowns"
+    val SPEAKER_NAME_ENDPOINT: String get() = "$SERVER_BASE_URL/speakers/name"
+
+    fun markMediaEndpoint(unknownId: String): String =
+        "$SERVER_BASE_URL/unknowns/${Uri.encode(unknownId)}/mark-media"
+
+    fun audioSampleUrl(filename: String): String =
+        "$SERVER_BASE_URL/audio/${Uri.encode(filename)}/sample"
+
+    fun segmentAudioUrl(segmentId: String): String =
+        "$SERVER_BASE_URL/audio/segments/${Uri.encode(segmentId)}"
 
     // ─── Device identity ──────────────────────────────────────────────────────
 

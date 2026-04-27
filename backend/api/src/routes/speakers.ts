@@ -5,8 +5,8 @@ import {
   listUnknowns,
   nameSpeaker,
   deleteSpeaker,
+  markUnknownAsMedia,
 } from '../services/speakerRegistry';
-import { speakerUiHandler } from './ui';
 
 export const speakersRouter = new Hono();
 
@@ -15,9 +15,6 @@ speakersRouter.get('/', async (c) => {
   const speakers = await listSpeakers();
   return c.json(speakers);
 });
-
-// GET /speakers/ui — serve the speaker naming HTML page
-speakersRouter.get('/ui', speakerUiHandler);
 
 // POST /speakers/name — assign a real name to an unknown speaker
 speakersRouter.post('/name', async (c) => {
@@ -62,4 +59,19 @@ speakersRouter.delete('/:id', async (c) => {
 export async function unknownsHandler(c: Context) {
   const unknowns = await listUnknowns();
   return c.json(unknowns);
+}
+
+// POST /unknowns/:id/mark-media — resolve an unknown voice as media/public audio
+export async function markMediaHandler(c: Context) {
+  const id = c.req.param('id');
+  if (!id || id.trim() === '') {
+    return c.json({ error: 'id is required' }, 400);
+  }
+  try {
+    const result = await markUnknownAsMedia(id.trim());
+    return c.json(result);
+  } catch (err: unknown) {
+    const e = err as Error & { status?: number };
+    return c.json({ error: e.message }, (e.status as 404 | 409) ?? 500);
+  }
 }
